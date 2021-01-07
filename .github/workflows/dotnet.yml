@@ -1,0 +1,37 @@
+name: .NET
+
+on: 'workflow_dispatch'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+#    - name: Create the package
+#      run: dotnet pack --configuration Release ApiTester
+#    - name: dotnet publish
+#      run: |
+#        dotnet publish -r win-x64 /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:PublishTrimmed=true -c Release -o dotnetcoreapp
+#    - name: Publish
+#      run: dotnet publish -r win-x64 -c Release /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
+    
+    - name: Create archive
+      run: Compress-Archive -Path 'D:\a\ApiTester\ApiTester\bin\Release\net5.0-windows\*' -DestinationPath 'D:\a\ApiTester\ApiTester\bin\Release\ApiTester.zip'
+
+    - name: Create Release
+      uses: ncipollo/release-action@v1.7.3
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        artifacts: 'D:\a\ApiTester\ApiTester\bin\Release\ApiTester.zip'
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: Release
+        allowUpdates: true
