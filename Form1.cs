@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Reflection;
@@ -153,193 +155,6 @@ namespace ApiTester
 
         }
 
-        public async Task SendRequest(string request_body, string request_headers, string http_method, string request_url, string http_version, string certificate)
-        {
-            HttpClientHandler handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
-
-            HttpClient client = new HttpClient(handler);
-
-            //var databasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MyData.db");
-            HttpRequestMessage request = new HttpRequestMessage();
-
-            StringContent content = new StringContent(request_body);
-            content.Headers.Remove("Content-Type");
-
-            using (StringReader reader = new StringReader(request_headers))
-            {
-                string s;
-                while ((s = reader.ReadLine()) != null)
-                {
-                    int pom1 = s.IndexOf(":");
-                    string key = s.Substring(0, pom1).Trim();
-                    string value = s.Substring(pom1 + 1, s.Length - (pom1 + 1)).Trim();
-
-                    //request.Headers.TryAddWithoutValidation(key, value);
-                    content.Headers.TryAddWithoutValidation(key, value);
-                }
-            }
-
-            if (content.Headers.Contains("traceparent") == false) content.Headers.Add("traceparent", GetTraceparent());
-
-            request.Method = new HttpMethod(http_method);
-            request.RequestUri = new Uri(request_url);
-            request.Content = content;
-            request.Version = ConvertHttpVersion(http_version);
-            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
-
-            if (certificate.Length > 0)
-            {
-                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                handler.AllowAutoRedirect = true;
-                handler.SslProtocols = SslProtocols.None;
-
-                var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-
-                try
-                {
-                    store.Open(OpenFlags.ReadOnly);
-                    X509Certificate2 clientCert = FindCert(store, certificate);
-                    handler.ClientCertificates.Add(clientCert);
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Can´t retrieve selected certificate from your local certificate store.");
-                }
-                store.Dispose();
-
-            }
-
-            HttpResponseMessage response = new HttpResponseMessage();
-            var watch = new System.Diagnostics.Stopwatch();
-
-            try
-            {
-                watch.Start();
-                response = await client.SendAsync(request);
-                await response.Content.LoadIntoBufferAsync();
-                watch.Stop();
-            }
-            catch (HttpRequestException ex)
-            {
-                response.StatusCode = System.Net.HttpStatusCode.ServiceUnavailable;
-                response.Content = new StringContent(ex.InnerException.Message);
-            }
-
-            //Response processing//
-            await SaveSession(request, response, watch, handler);
-
-            request.Dispose();
-            response.Dispose();
-            handler.Dispose();
-            client.Dispose();
-        }
-
-        private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
-        {
-            serverCertificate.RequestUri = requestMessage.RequestUri.AbsoluteUri;
-            serverCertificate.ValidFrom = certificate.GetEffectiveDateString();
-            serverCertificate.ValidTo = certificate.GetExpirationDateString();
-            serverCertificate.Subject = certificate.Subject;
-            serverCertificate.Issuer = certificate.Issuer;
-            serverCertificate.IsValid = certificate.Verify();
-
-            return sslErrors == SslPolicyErrors.None;
-        }
-
-        public async Task SaveSession(HttpRequestMessage request, HttpResponseMessage response, System.Diagnostics.Stopwatch watch, HttpClientHandler handler)
-        {
-            var sb = new StringBuilder();
-            foreach (var header in response.Headers)
-                sb.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
-
-            foreach (var header in response.TrailingHeaders)
-                sb.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
-
-            foreach (var header in response.Content.Headers)
-                sb.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
-
-            var sr = new StringBuilder();
-            //foreach (var header in request.Headers)
-            //{
-            //    sr.AppendLine(header.Key + ":" + string.Join(", ", header.Value));
-            //}
-
-            foreach (var header in request.Content.Headers)
-                sr.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
-
-            //foreach (var header in client.DefaultRequestHeaders)
-            //{
-            //    sr.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
-            //}
-
-            var session = new Session()
-            {
-                DateTime = DateTime.Now.ToString("s"),
-                RequestHeaders = sr.ToString(),
-                RequestBody = await request.Content.ReadAsStringAsync(),
-                Method = request.Method.Method,
-                UriAbsoluteUri = request.RequestUri.AbsoluteUri,
-                UriAbsolutePath = request.RequestUri.AbsolutePath,
-                UriQuery = request.RequestUri.Query,
-                UriHost = request.RequestUri.Host,
-                ResponseBody = await response.Content.ReadAsStringAsync(),
-                ResponseHeaders = sb.ToString(),
-                ResponseTime = (int)watch.ElapsedMilliseconds,
-              
-                ResponseLength = Convert.ToInt32(response.Content.Headers.ContentLength.Value),
-                ResponseStatusCode = (int)response.StatusCode,
-                ResponseHttpVersion = response.Version.ToString(),
-                RequestHttpVersion = comboBox_http_version.Text
-            };
-
-            if (session.UriAbsoluteUri.Equals(serverCertificate.RequestUri))
-            {
-                session.ServerCertSubject = serverCertificate.Subject;
-                session.ServerCertIssuer = serverCertificate.Issuer;
-                session.ServerCertValidFrom = serverCertificate.ValidFrom;
-                session.ServerCertValidTo = serverCertificate.ValidTo;
-                session.ServerCertIsValid = serverCertificate.IsValid;
-            }
-
-            if (comboBox_certificates.Text.Length > 0)
-            {
-                session.ClientCertSubject = handler.ClientCertificates[0].Subject;
-            }
-
-
-            //Sqlite
-            //await db.InsertAsync(session);
-            //session.id = session.sqliteId.ToString();
-
-
-            try
-            {
-                //Azure Cosmos
-                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.CosmosDatabaseId);
-                CosmosContainer container = await cosmosClient.GetDatabase(_settings.CosmosDatabaseId).CreateContainerIfNotExistsAsync(_settings.CosmosContainerId, "/partition");
-                session.id = Guid.NewGuid().ToString();
-                ItemResponse<Session> createResponse = await container.CreateItemAsync(session, new PartitionKey(session.partition));
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
-
-
-            dtSessions.Rows.Add(new object[] { session.id, session.ResponseStatusCode, session.UriHost, session.UriAbsolutePath, session.Note });
-            //int newRowIndex = dataGridView1.Rows.Add(session.Id, session.ResponseStatusCode, session.UriHost, session.UriAbsolutePath, session.Note);
-            //dataGridView1.Rows[newRowIndex].Selected = true;
-            // await DisplaySession(newRowIndex);
-            dataGridView1.DataSource = dtSessions;
-            dataGridView1.Rows[dataGridView1.Rows.Count - 1].Selected = true;
-            await DisplaySession(dataGridView1.Rows.Count - 1);
-
-            tabControl1.SelectedTab = tabPage2;
-        }
-
-       
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
@@ -400,7 +215,11 @@ namespace ApiTester
             textBox_request_headers.Text = session.RequestHeaders;
             textBox_request_url.Text = session.UriAbsoluteUri;
 
-            var pretty = PrettyPrint(session.ResponseBody);
+            //Response is store zipped as a string
+            var ResponseBody_zip = Convert.FromBase64String(session.ResponseBody);
+            var ResponseBody_string = Unzip(ResponseBody_zip);
+  
+            var pretty = PrettyPrint(ResponseBody_string);
             if (pretty[0, 0].Equals("JSON")) textBox_response_body.Language = FastColoredTextBoxNS.Language.JSON;
             if (pretty[0, 0].Equals("XML")) textBox_response_body.Language = FastColoredTextBoxNS.Language.XML;
             textBox_response_body.Text = pretty[0, 1];
@@ -529,6 +348,7 @@ namespace ApiTester
             return null;
         }
 
+
         private void dataGridView1_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
             if (this.dataGridView1.Columns["ResponseStatusCode"].Index == e.ColumnIndex && e.RowIndex >= 0)
@@ -552,6 +372,10 @@ namespace ApiTester
             }
         }
 
+
+        /// <summary>
+        /// Insert or update Note to the database
+        /// </summary>
         private async void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)
@@ -586,6 +410,7 @@ namespace ApiTester
             }
         }
 
+
         private  void textBox_filter_TextChanged(object sender, EventArgs e)
         {
             if (textBox_filter.Text.Length > 0)
@@ -613,62 +438,55 @@ namespace ApiTester
 
             LoadSessions();
         }
+
+        public static byte[] Zip(string textToZip)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                {
+                    var demoFile = zipArchive.CreateEntry("zipped.txt");
+
+                    using (var entryStream = demoFile.Open())
+                    {
+                        using (var streamWriter = new StreamWriter(entryStream))
+                        {
+                            streamWriter.Write(textToZip);
+                        }
+                    }
+                }
+
+                return memoryStream.ToArray();
+            }
+        }
+
+        public static string Unzip(byte[] zippedBuffer)
+        {
+            using (var zippedStream = new MemoryStream(zippedBuffer))
+            {
+                using (var archive = new ZipArchive(zippedStream))
+                {
+                    var entry = archive.Entries.FirstOrDefault();
+
+                    if (entry != null)
+                    {
+                        using (var unzippedEntryStream = entry.Open())
+                        {
+                            using (var ms = new MemoryStream())
+                            {
+                                unzippedEntryStream.CopyTo(ms);
+                                var unzippedArray = ms.ToArray();
+
+                                return Encoding.Default.GetString(unzippedArray);
+                            }
+                        }
+                    }
+
+                    return null;
+                }
+            }
+        }
     }
 
-    public class ServerCertificate
-    {
-        public string RequestUri { get; set; }
-        public string ValidFrom { get; set; }
-        public string ValidTo { get; set; }
-        public string Subject { get; set; }
-        public string Issuer { get; set; }
-        public bool IsValid { get; set; }
-    }
-
-    public class Settings
-    {
-        public string CosmosEndpointUrl { get; set; }
-        public string CosmosAuthorizationKey { get; set; }
-        public string CosmosDatabaseId { get; set; }
-        public string CosmosContainerId { get; set; }
-
-    }
-
-    public class Session
-    {
-        //[PrimaryKey, AutoIncrement]
-        //public int sqliteId { get; set; }
-
-        //id for Azure Cosmos must be a string
-        public string id { get; set; }
-
-        //for Azure Cosmos
-        public string partition { get; set; }
-        
-        public string DateTime { get; set; }
-        public string UriAbsoluteUri { get; set; }
-        public string UriAbsolutePath { get; set; }
-        public string UriQuery { get; set; }
-        public string UriHost { get; set; }
-        public string Method { get; set; }
-        public string RequestHeaders { get; set; }
-        public string RequestBody { get; set; }
-        public string ResponseHeaders { get; set; }
-        public string ResponseBody { get; set; }
-        public int ResponseStatusCode { get; set; }
-        public string ResponseHttpVersion { get; set; }
-        public string RequestHttpVersion { get; set; }
-        public int ResponseLength { get; set; }
-        public int ResponseTime { get; set; }
-        public string Note { get; set; }
-        public string Application { get; set; }
-
-        public bool ServerCertIsValid { get; set; }
-        public string ServerCertValidFrom { get; set; }
-        public string ServerCertValidTo { get; set; }
-        public string ServerCertSubject { get; set; }
-        public string ServerCertIssuer { get; set; }
-
-        public string ClientCertSubject { get; set; }
-    }
+   
 }
