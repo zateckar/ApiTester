@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SQLite;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,12 +17,16 @@ namespace ApiTester
         public bool IsValid { get; set; }
     }
 
-    public class Settings
-    {
-        public string CosmosEndpointUrl { get; set; }
-        public string CosmosAuthorizationKey { get; set; }
-        public string CosmosDatabaseId { get; set; }
-        public string CosmosContainerId { get; set; }
+    public class Setting
+    {       
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
+
+        public string EndpointUrl { get; set; }
+        public string AuthorizationKey { get; set; }
+        public string DatabaseId { get; set; }
+        public string ContainerId { get; set; }
+        public bool Selected { get; set; }
 
     }
 

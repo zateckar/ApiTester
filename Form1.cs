@@ -22,10 +22,10 @@ namespace ApiTester
 {
     public partial class Form1 : Form
     {
-        public static SQLiteAsyncConnection db = new SQLiteAsyncConnection( "apitester.db");
+        public static SQLiteAsyncConnection db = new SQLiteAsyncConnection("settings.db");
         public static ServerCertificate serverCertificate = new ServerCertificate();
         DataTable dtSessions = new DataTable();
-        static Settings _settings = new Settings();
+        static Setting _settings = new Setting();
         CosmosClient cosmosClient;
 
         public Form1()
@@ -42,40 +42,48 @@ namespace ApiTester
             dtSessions.Columns.Add("UriAbsolutePath", typeof(string));
             dtSessions.Columns.Add("Note", typeof(string));
 
+            comboBox_settings_profiles.DisplayMember = "ContainerId";
+            comboBox_settings_profiles.ValueMember = "Id";
+
             LoadSettings();
             LoadCertificates();
         }
 
         private async void LoadSettings()
         {
-            AsyncTableQuery<Settings> query;
-            Settings result = new Settings();
+            comboBox_settings_profiles.Items.Clear();
+
+            AsyncTableQuery<Setting> query;
+            List<Setting> result = new List<Setting>();
             try
             {
-                await db.CreateTableAsync<Settings>();
-                query = db.Table<Settings>();
-                result = await query.FirstOrDefaultAsync();
+                await db.CreateTableAsync<Setting>();
+                query = db.Table<Setting>();
+                result = await query.ToListAsync();
             }
             catch (Exception)
-            { }
+            {  }
 
-            if (result is not null)
+            if (result.Count > 0)
             {
-                _settings.CosmosEndpointUrl = result.CosmosEndpointUrl;
-                textBox_cosmos_EndpointUrl.Text = _settings.CosmosEndpointUrl;
+                foreach (var item in result)
+                {
 
-                _settings.CosmosAuthorizationKey = result.CosmosAuthorizationKey;
-                textBox_cosmos_AuthorizationKey.Text = _settings.CosmosAuthorizationKey;
+                    comboBox_settings_profiles.Items.Add(item);
 
-                _settings.CosmosDatabaseId = result.CosmosDatabaseId;
-                textBox_cosmos_DatabaseId.Text = _settings.CosmosDatabaseId;
+                    if (item.Selected)
+                    {
+                        comboBox_settings_profiles.SelectedItem = item;
 
-                _settings.CosmosContainerId = result.CosmosContainerId;
-                textBox_cosmos_ContainerId.Text = _settings.CosmosContainerId;
+                        await LoadSettingProfile();
 
-                cosmosClient = new CosmosClient(_settings.CosmosEndpointUrl, _settings.CosmosAuthorizationKey);
-       
-                LoadSessions();
+                        LoadSessions();
+
+                    }
+
+                }
+
+
             }
             else
             {
@@ -87,27 +95,18 @@ namespace ApiTester
 
         public async void LoadSessions()
         {
-            dataGridView1.Rows.Clear();
-
-            //Sqlite
-            //await db.CreateTableAsync<Session>();
-            //var query = db.Table<Session>();
-            //var result = await query.ToListAsync();
+            dtSessions.Clear();
 
             //Azure Cosmos
-            CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.CosmosDatabaseId);
-            CosmosContainer container = await cosmosClient.GetDatabase(_settings.CosmosDatabaseId).CreateContainerIfNotExistsAsync(_settings.CosmosContainerId, "/partition");
+            cosmosClient = new CosmosClient(_settings.EndpointUrl, _settings.AuthorizationKey);
+            CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
+            CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
             var sqlQueryText = "SELECT * FROM c";
             QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-            // List<Session> sessions = new List<Session>();
             await foreach (Session s in container.GetItemQueryIterator<Session>(queryDefinition))
             {
-                //sessions.Add(session);
                 dtSessions.Rows.Add(new object[] { s.id, s.ResponseStatusCode, s.UriHost, s.UriAbsolutePath, s.Note });
             }
-
-            //foreach (var s in result)
-            //    dataGridView1.Rows.Add(s.Id, s.ResponseStatusCode, s.UriHost, s.UriAbsolutePath, s.Note);
 
             dataGridView1.DataSource = dtSessions;
             dataGridView1.Columns[0].Visible = false;
@@ -144,8 +143,8 @@ namespace ApiTester
             for (int y = 0; y < Convert.ToInt32(numericUpDown_request.Text); y++)
             {
                 await SendRequest(
-                    textBox_request_body.Text, 
-                    textBox_request_headers.Text, 
+                    textBox_request_body.Text,
+                    textBox_request_headers.Text,
                     comboBox_http_method.Text,
                     textBox_request_url.Text,
                     comboBox_http_version.Text,
@@ -179,10 +178,10 @@ namespace ApiTester
 
             var clickedId = dataGridView1.Rows[e.Row.Index].Cells[0].Value.ToString();
 
-           // var query = db.Table<Session>().Where(s => s.sqliteId.Equals(clickedId));
-           // var result = await query.DeleteAsync();
+            // var query = db.Table<Session>().Where(s => s.sqliteId.Equals(clickedId));
+            // var result = await query.DeleteAsync();
 
-            CosmosContainer container = cosmosClient.GetContainer(_settings.CosmosDatabaseId, _settings.CosmosContainerId);
+            CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
             Session session = new Session();
             ItemResponse<Session> sessionCosmos = await container.DeleteItemAsync<Session>(clickedId, new PartitionKey(session.partition));
         }
@@ -202,9 +201,9 @@ namespace ApiTester
             //var session_pom = await query.FirstAsync();
 
             //Azure Cosmos
-            CosmosContainer container = cosmosClient.GetContainer(_settings.CosmosDatabaseId, _settings.CosmosContainerId);
+            CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
             Session session = new Session();
-            ItemResponse<Session> sessionCosmos = await container.ReadItemAsync<Session>(clickedId,new PartitionKey(session.partition));
+            ItemResponse<Session> sessionCosmos = await container.ReadItemAsync<Session>(clickedId, new PartitionKey(session.partition));
             session = sessionCosmos.Value;
 
             comboBox_http_method.SelectedItem = session.Method;
@@ -218,7 +217,7 @@ namespace ApiTester
             //Response is store zipped as a string
             var ResponseBody_zip = Convert.FromBase64String(session.ResponseBody);
             var ResponseBody_string = Unzip(ResponseBody_zip);
-  
+
             var pretty = PrettyPrint(ResponseBody_string);
             if (pretty[0, 0].Equals("JSON")) textBox_response_body.Language = FastColoredTextBoxNS.Language.JSON;
             if (pretty[0, 0].Equals("XML")) textBox_response_body.Language = FastColoredTextBoxNS.Language.XML;
@@ -390,7 +389,7 @@ namespace ApiTester
                 Session session = new Session();
                 try
                 {
-                    CosmosContainer container = cosmosClient.GetContainer(_settings.CosmosDatabaseId, _settings.CosmosContainerId);
+                    CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
                     ItemResponse<Session> sessionCosmos = await container.ReadItemAsync<Session>(clickedId, new PartitionKey(session.partition));
                     session = sessionCosmos.Value;
 
@@ -406,37 +405,118 @@ namespace ApiTester
                     throw;
                 }
 
-                
+
             }
         }
 
 
-        private  void textBox_filter_TextChanged(object sender, EventArgs e)
+        private void textBox_filter_TextChanged(object sender, EventArgs e)
         {
             if (textBox_filter.Text.Length > 0)
             {
-               // dtSessions.DefaultView.RowFilter = string.Format("[{0}] LIKE '%{1}%'", "Note", textBox_filter.Text);
+                // dtSessions.DefaultView.RowFilter = string.Format("[{0}] LIKE '%{1}%'", "Note", textBox_filter.Text);
                 dtSessions.DefaultView.RowFilter = "Note LIKE '%" + textBox_filter.Text.Trim() + "%' OR UriHost LIKE '%" + textBox_filter.Text.Trim() + "%' OR UriAbsolutePath LIKE '%" + textBox_filter.Text.Trim() + "%'";
             }
             else
             {
                 dtSessions.DefaultView.RowFilter = String.Empty;
             }
-            
+
         }
+
+        private async void comboBox_settings_profiles_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadSettingProfile();
+        }
+
+        private async Task LoadSettingProfile()
+        {
+            AsyncTableQuery<Setting> query;
+            Setting result = new Setting();
+
+            try
+            {
+                await db.CreateTableAsync<Setting>();
+
+
+                int selectedId = ((Setting)comboBox_settings_profiles.SelectedItem).Id;
+
+                query = db.Table<Setting>().Where(s => s.Id == selectedId);
+                result = await query.FirstAsync();
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            if (result is not null)
+            {
+
+                _settings.EndpointUrl = result.EndpointUrl;
+                textBox_cosmos_EndpointUrl.Text = _settings.EndpointUrl;
+
+                _settings.AuthorizationKey = result.AuthorizationKey;
+                textBox_cosmos_AuthorizationKey.Text = _settings.AuthorizationKey;
+
+                _settings.DatabaseId = result.DatabaseId;
+                textBox_cosmos_DatabaseId.Text = _settings.DatabaseId;
+
+                _settings.ContainerId = result.ContainerId;
+                textBox_cosmos_ContainerId.Text = _settings.ContainerId;
+
+                //_settings.Selected = true;
+
+                cosmosClient = new CosmosClient(_settings.EndpointUrl, _settings.AuthorizationKey);
+            }
+
+        }
+
+
+
 
         private async void button_settings_save_Click(object sender, EventArgs e)
         {
-            _settings.CosmosAuthorizationKey = textBox_cosmos_AuthorizationKey.Text;
-            _settings.CosmosEndpointUrl = textBox_cosmos_EndpointUrl.Text;
-            _settings.CosmosDatabaseId = textBox_cosmos_DatabaseId.Text;
-            _settings.CosmosContainerId = textBox_cosmos_ContainerId.Text;
+            _settings.AuthorizationKey = textBox_cosmos_AuthorizationKey.Text;
+            _settings.EndpointUrl = textBox_cosmos_EndpointUrl.Text;
+            _settings.DatabaseId = textBox_cosmos_DatabaseId.Text;
+            _settings.ContainerId = textBox_cosmos_ContainerId.Text;
+             
+            await db.UpdateAsync(_settings);
+   
+        }
 
-            await db.InsertOrReplaceAsync(_settings);
+        private async void button_settings_insert_Click(object sender, EventArgs e)
+        {
+            _settings.AuthorizationKey = textBox_cosmos_AuthorizationKey.Text;
+            _settings.EndpointUrl = textBox_cosmos_EndpointUrl.Text;
+            _settings.DatabaseId = textBox_cosmos_DatabaseId.Text;
+            _settings.ContainerId = textBox_cosmos_ContainerId.Text;
 
-            tabControl2.SelectedTab = tabPage3;
+   
+            await db.InsertAsync(_settings);
 
-            LoadSessions();
+        }
+
+        private async void button_settings_delete_Click(object sender, EventArgs e)
+        {
+            await db.DeleteAsync(_settings);
+        }
+
+        private async void tabControl2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            //TO-DO: updatovat všechny selected na false 
+
+            var count = await db.ExecuteAsync("update Setting set Selected = false");
+
+            _settings.Selected = true;
+            await db.UpdateAsync(_settings);
+
+
+            if (tabControl2.SelectedTab == tabPage3)
+            {
+                LoadSessions();
+            }
         }
 
         public static byte[] Zip(string textToZip)
@@ -486,6 +566,8 @@ namespace ApiTester
                 }
             }
         }
+
+
     }
 
    

@@ -96,8 +96,8 @@ namespace ApiTester
             try
             {
                 //Azure Cosmos
-                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.CosmosDatabaseId);
-                CosmosContainer container = await cosmosClient.GetDatabase(_settings.CosmosDatabaseId).CreateContainerIfNotExistsAsync(_settings.CosmosContainerId, "/partition");
+                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
+                CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
                 session.id = Guid.NewGuid().ToString();
                 ItemResponse<Session> createResponse = await container.CreateItemAsync(session, new PartitionKey(session.partition));
             }
