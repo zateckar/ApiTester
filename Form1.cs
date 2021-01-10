@@ -92,6 +92,8 @@ namespace ApiTester
 
         public async void LoadSessions()
         {
+            this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
             dtSessions.Clear();
 
             //Azure Cosmos
@@ -100,15 +102,15 @@ namespace ApiTester
             try
             {
                 CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
-
                 CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
-
 
                 var sqlQueryText = "SELECT * FROM c";
                 QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
                 await foreach (Session s in container.GetItemQueryIterator<Session>(queryDefinition))
                 {
                     dtSessions.Rows.Add(new object[] { s.id, s.ResponseStatusCode, s.UriHost, s.UriAbsolutePath, s.Note });
+
                 }
             }
             catch (Exception ex)
@@ -116,9 +118,6 @@ namespace ApiTester
 
                 MessageBox.Show(ex.Message);
             }
-
-
-            
 
             dataGridView1.DataSource = dtSessions;
             dataGridView1.Columns[0].Visible = false;
@@ -136,6 +135,8 @@ namespace ApiTester
 
             dataGridView1.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
+            this.Cursor = System.Windows.Forms.Cursors.Default;
+
         }
 
         private async void button_request_send_Click(object sender, EventArgs e)
@@ -151,6 +152,7 @@ namespace ApiTester
             //    SendRequest();
             //});
 
+            this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
 
             for (int y = 0; y < Convert.ToInt32(numericUpDown_request.Text); y++)
             {
@@ -163,6 +165,8 @@ namespace ApiTester
                     comboBox_certificates.Text
                     );
             }
+
+            this.Cursor = System.Windows.Forms.Cursors.Default;
 
         }
 
@@ -186,16 +190,24 @@ namespace ApiTester
 
         private async void dataGridView1_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
         {
-            //var db = new SQLiteAsyncConnection("sessions.db");
-
+            this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
             var clickedId = dataGridView1.Rows[e.Row.Index].Cells[0].Value.ToString();
 
-            // var query = db.Table<Session>().Where(s => s.sqliteId.Equals(clickedId));
-            // var result = await query.DeleteAsync();
-
-            CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
-            Session session = new Session();
-            ItemResponse<Session> sessionCosmos = await container.DeleteItemAsync<Session>(clickedId, new PartitionKey(session.partition));
+            try
+            {
+                CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
+                Session session = new Session();
+                ItemResponse<Session> sessionCosmos = await container.DeleteItemAsync<Session>(clickedId, new PartitionKey(session.partition));
+         
+            }
+            catch (Exception)
+            {
+                this.Cursor = System.Windows.Forms.Cursors.Default;
+            }
+            
+            
+            Thread.Sleep(500);
+            this.Cursor = System.Windows.Forms.Cursors.Default;
         }
 
         private async void dataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
@@ -205,12 +217,9 @@ namespace ApiTester
 
         private async Task DisplaySession(int RowIndex)
         {
-            var clickedId = dataGridView1.Rows[RowIndex].Cells["Id"].Value.ToString();
+            this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
 
-            //Sqlite
-            //var db = new SQLiteAsyncConnection("sessions.db");
-            //var query = db.Table<Session>().Where(s => s.sqliteId.Equals(clickedId));
-            //var session_pom = await query.FirstAsync();
+            var clickedId = dataGridView1.Rows[RowIndex].Cells["Id"].Value.ToString();
 
             //Azure Cosmos
             CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
@@ -247,108 +256,10 @@ namespace ApiTester
             textBox_response_stats.Text += " - ValidFrom: " + session.ServerCertValidFrom + Environment.NewLine;
             textBox_response_stats.Text += " - ValidTo: " + session.ServerCertValidTo + Environment.NewLine;
             textBox_response_stats.Text += " - IsValid: " + session.ServerCertIsValid.ToString() + Environment.NewLine;
+
+            this.Cursor = System.Windows.Forms.Cursors.Default;
         }
 
-        //public string Prettify(string jsonString)
-        //{
-        //    using var stream = new MemoryStream();
-        //    var document = JsonDocument.Parse(jsonString);
-        //    var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-        //    document.WriteTo(writer);
-        //    writer.Flush();
-        //    return Encoding.UTF8.GetString(stream.ToArray());
-        //}
-
-        //public string PrettyJson(string unPrettyJson)
-        //{
-        //    var options = new JsonSerializerOptions()
-        //    {
-        //        WriteIndented = true
-        //    };
-
-        //    var jsonElement = JsonSerializer.Deserialize<JsonElement>(unPrettyJson);
-
-        //    return JsonSerializer.Serialize(jsonElement, options);
-        //}
-
-        //public static string FormatJson(string json, string indent = "  ")
-        //{
-        //    var indentation = 0;
-        //    var quoteCount = 0;
-        //    var escapeCount = 0;
-
-        //    var result =
-        //        from ch in json ?? string.Empty
-        //        let escaped = (ch == '\\' ? escapeCount++ : escapeCount > 0 ? escapeCount-- : escapeCount) > 0
-        //        let quotes = ch == '"' && !escaped ? quoteCount++ : quoteCount
-        //        let unquoted = quotes % 2 == 0
-        //        let colon = ch == ':' && unquoted ? ": " : null
-        //        let nospace = char.IsWhiteSpace(ch) && unquoted ? string.Empty : null
-        //        let lineBreak = ch == ',' && unquoted ? ch + Environment.NewLine + string.Concat(Enumerable.Repeat(indent, indentation)) : null
-        //        let openChar = (ch == '{' || ch == '[') && unquoted ? ch + Environment.NewLine + string.Concat(Enumerable.Repeat(indent, ++indentation)) : ch.ToString()
-        //        let closeChar = (ch == '}' || ch == ']') && unquoted ? Environment.NewLine + string.Concat(Enumerable.Repeat(indent, --indentation)) + ch : ch.ToString()
-        //        select colon ?? nospace ?? lineBreak ?? (
-        //            openChar.Length > 1 ? openChar : closeChar
-        //        );
-
-        //    return string.Concat(result);
-        //}
-
-        public static string[,] PrettyPrint(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-            {
-                string[,] output = { { "", input } };
-
-                return output;
-            }
-
-            try
-            {
-                string[,] output = { { "XML", XDocument.Parse(input).ToString() } };
-                return output;
-            }
-            catch (Exception) { }
-
-            try
-            {
-                var options = new JsonSerializerOptions()
-                {
-                    WriteIndented = true
-                };
-                var jsonElement = JsonSerializer.Deserialize<JsonElement>(input);
-
-                string[,] output = { { "JSON", JsonSerializer.Serialize(jsonElement, options) } };
-                return output;
-            }
-            catch (Exception) { }
-
-            string[,] output1 = { { "", input } };
-
-            return output1;
-        }
-
-        public string GetTraceparent()
-        {
-            string version = "00";
-            string traceid = Guid.NewGuid().ToString("N");
-            string parentid = Guid.NewGuid().ToString("N").Remove(16, 16);
-            string traceflags = "01";
-
-            return (version + "-" + traceid + "-" + parentid + "-" + traceflags);
-        }
-
-        public Version ConvertHttpVersion(string customVersion)
-        {
-            Version result = new Version();
-
-            if (customVersion.Contains("HTTP 1.0")) result = new Version(1, 0);
-            if (customVersion.Contains("HTTP 1.1")) result = new Version(1, 1);
-            if (customVersion.Contains("HTTP 2.0")) result = new Version(2, 0);
-            if (customVersion.Contains("HTTP 3.0")) result = new Version(3, 0);
-
-            return result;
-        }
 
         private static X509Certificate2 FindCert(X509Store store, string subject)
         {
@@ -485,9 +396,6 @@ namespace ApiTester
 
         }
 
-
-
-
         private async void button_settings_save_Click(object sender, EventArgs e)
         {
             _settings.AuthorizationKey = textBox_cosmos_AuthorizationKey.Text;
@@ -533,55 +441,45 @@ namespace ApiTester
             }
         }
 
-        public static byte[] Zip(string textToZip)
+        private async void button_settings_export_Click(object sender, EventArgs e)
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
-                {
-                    var demoFile = zipArchive.CreateEntry("zipped.txt");
+            cosmosClient = new CosmosClient(_settings.EndpointUrl, _settings.AuthorizationKey);
 
-                    using (var entryStream = demoFile.Open())
-                    {
-                        using (var streamWriter = new StreamWriter(entryStream))
-                        {
-                            streamWriter.Write(textToZip);
-                        }
-                    }
+            try
+            {
+                string timestamp = DateTime.Now.ToString("yyyymmddHHmmss");
+                SQLiteAsyncConnection db = new SQLiteAsyncConnection("export-"+timestamp+".db");
+
+
+
+
+                await db.CreateTableAsync<Session>();
+
+                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
+
+                CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
+
+                var sqlQueryText = "SELECT * FROM c";
+                QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+
+                await foreach (Session s in container.GetItemQueryIterator<Session>(queryDefinition))
+                {
+                    await db.InsertAsync(s);
                 }
 
-                return memoryStream.ToArray();
-            }
-        }
+                string exportFilepath = new FileInfo("export-" + timestamp + ".db").DirectoryName;
 
-        public static string Unzip(byte[] zippedBuffer)
-        {
-            using (var zippedStream = new MemoryStream(zippedBuffer))
-            {
-                using (var archive = new ZipArchive(zippedStream))
+                if (MessageBox.Show("Exported in Sqlite format to: " + exportFilepath + "export-" + timestamp + ".db", "Open export directory?", MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk) == DialogResult.Yes)
                 {
-                    var entry = archive.Entries.FirstOrDefault();
+                    System.Diagnostics.Process.Start("explorer.exe", exportFilepath);
+                };
+            }
+            catch (Exception ex)
+            {
 
-                    if (entry != null)
-                    {
-                        using (var unzippedEntryStream = entry.Open())
-                        {
-                            using (var ms = new MemoryStream())
-                            {
-                                unzippedEntryStream.CopyTo(ms);
-                                var unzippedArray = ms.ToArray();
-
-                                return Encoding.Default.GetString(unzippedArray);
-                            }
-                        }
-                    }
-
-                    return null;
-                }
+                MessageBox.Show(ex.Message);
             }
         }
-
-
     }
 
    

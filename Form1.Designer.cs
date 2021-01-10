@@ -69,6 +69,7 @@ namespace ApiTester
             this.textBox_cosmos_AuthorizationKey = new System.Windows.Forms.TextBox();
             this.textBox_cosmos_EndpointUrl = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
+            this.button_settings_export = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.textBox_response_headers)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -608,7 +609,7 @@ namespace ApiTester
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(14, 16);
+            this.label7.Location = new System.Drawing.Point(14, 19);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(100, 15);
             this.label7.TabIndex = 5;
@@ -617,7 +618,7 @@ namespace ApiTester
             // comboBox_settings_profiles
             // 
             this.comboBox_settings_profiles.FormattingEnabled = true;
-            this.comboBox_settings_profiles.Location = new System.Drawing.Point(133, 13);
+            this.comboBox_settings_profiles.Location = new System.Drawing.Point(133, 16);
             this.comboBox_settings_profiles.Name = "comboBox_settings_profiles";
             this.comboBox_settings_profiles.Size = new System.Drawing.Size(262, 23);
             this.comboBox_settings_profiles.TabIndex = 4;
@@ -627,6 +628,7 @@ namespace ApiTester
             // 
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Controls.Add(this.button_settings_export);
             this.groupBox1.Controls.Add(this.button_settings_insert);
             this.groupBox1.Controls.Add(this.label6);
             this.groupBox1.Controls.Add(this.label5);
@@ -641,25 +643,25 @@ namespace ApiTester
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Location = new System.Drawing.Point(8, 59);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(410, 353);
+            this.groupBox1.Size = new System.Drawing.Size(417, 300);
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Database profile";
             // 
             // button_settings_insert
             // 
-            this.button_settings_insert.Location = new System.Drawing.Point(16, 310);
+            this.button_settings_insert.Location = new System.Drawing.Point(218, 260);
             this.button_settings_insert.Name = "button_settings_insert";
-            this.button_settings_insert.Size = new System.Drawing.Size(75, 28);
+            this.button_settings_insert.Size = new System.Drawing.Size(85, 23);
             this.button_settings_insert.TabIndex = 5;
-            this.button_settings_insert.Text = "Add new";
+            this.button_settings_insert.Text = "Add as new";
             this.button_settings_insert.UseVisualStyleBackColor = true;
             this.button_settings_insert.Click += new System.EventHandler(this.button_settings_insert_Click);
             // 
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(15, 248);
+            this.label6.Location = new System.Drawing.Point(15, 184);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(75, 15);
             this.label6.TabIndex = 2;
@@ -668,7 +670,7 @@ namespace ApiTester
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(15, 219);
+            this.label5.Location = new System.Drawing.Point(15, 155);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(71, 15);
             this.label5.TabIndex = 2;
@@ -676,9 +678,9 @@ namespace ApiTester
             // 
             // button_settings_delete
             // 
-            this.button_settings_delete.Location = new System.Drawing.Point(303, 310);
+            this.button_settings_delete.Location = new System.Drawing.Point(309, 260);
             this.button_settings_delete.Name = "button_settings_delete";
-            this.button_settings_delete.Size = new System.Drawing.Size(84, 28);
+            this.button_settings_delete.Size = new System.Drawing.Size(85, 23);
             this.button_settings_delete.TabIndex = 4;
             this.button_settings_delete.Text = "Delete";
             this.button_settings_delete.UseVisualStyleBackColor = true;
@@ -687,7 +689,7 @@ namespace ApiTester
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(15, 190);
+            this.label4.Location = new System.Drawing.Point(15, 126);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(104, 15);
             this.label4.TabIndex = 2;
@@ -696,9 +698,9 @@ namespace ApiTester
             // button_settings_save
             // 
             this.button_settings_save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_settings_save.Location = new System.Drawing.Point(161, 310);
+            this.button_settings_save.Location = new System.Drawing.Point(218, 226);
             this.button_settings_save.Name = "button_settings_save";
-            this.button_settings_save.Size = new System.Drawing.Size(76, 28);
+            this.button_settings_save.Size = new System.Drawing.Size(176, 28);
             this.button_settings_save.TabIndex = 3;
             this.button_settings_save.Text = "Update";
             this.button_settings_save.UseVisualStyleBackColor = true;
@@ -707,7 +709,7 @@ namespace ApiTester
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(15, 161);
+            this.label3.Location = new System.Drawing.Point(15, 97);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(76, 15);
             this.label3.TabIndex = 2;
@@ -717,36 +719,36 @@ namespace ApiTester
             // 
             this.textBox_cosmos_ContainerId.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_cosmos_ContainerId.Location = new System.Drawing.Point(125, 245);
+            this.textBox_cosmos_ContainerId.Location = new System.Drawing.Point(125, 181);
             this.textBox_cosmos_ContainerId.Name = "textBox_cosmos_ContainerId";
-            this.textBox_cosmos_ContainerId.Size = new System.Drawing.Size(262, 23);
+            this.textBox_cosmos_ContainerId.Size = new System.Drawing.Size(269, 23);
             this.textBox_cosmos_ContainerId.TabIndex = 0;
             // 
             // textBox_cosmos_DatabaseId
             // 
             this.textBox_cosmos_DatabaseId.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_cosmos_DatabaseId.Location = new System.Drawing.Point(125, 216);
+            this.textBox_cosmos_DatabaseId.Location = new System.Drawing.Point(125, 152);
             this.textBox_cosmos_DatabaseId.Name = "textBox_cosmos_DatabaseId";
-            this.textBox_cosmos_DatabaseId.Size = new System.Drawing.Size(262, 23);
+            this.textBox_cosmos_DatabaseId.Size = new System.Drawing.Size(269, 23);
             this.textBox_cosmos_DatabaseId.TabIndex = 0;
             // 
             // textBox_cosmos_AuthorizationKey
             // 
             this.textBox_cosmos_AuthorizationKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_cosmos_AuthorizationKey.Location = new System.Drawing.Point(125, 187);
+            this.textBox_cosmos_AuthorizationKey.Location = new System.Drawing.Point(125, 123);
             this.textBox_cosmos_AuthorizationKey.Name = "textBox_cosmos_AuthorizationKey";
-            this.textBox_cosmos_AuthorizationKey.Size = new System.Drawing.Size(262, 23);
+            this.textBox_cosmos_AuthorizationKey.Size = new System.Drawing.Size(269, 23);
             this.textBox_cosmos_AuthorizationKey.TabIndex = 0;
             // 
             // textBox_cosmos_EndpointUrl
             // 
             this.textBox_cosmos_EndpointUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_cosmos_EndpointUrl.Location = new System.Drawing.Point(125, 158);
+            this.textBox_cosmos_EndpointUrl.Location = new System.Drawing.Point(125, 94);
             this.textBox_cosmos_EndpointUrl.Name = "textBox_cosmos_EndpointUrl";
-            this.textBox_cosmos_EndpointUrl.Size = new System.Drawing.Size(262, 23);
+            this.textBox_cosmos_EndpointUrl.Size = new System.Drawing.Size(269, 23);
             this.textBox_cosmos_EndpointUrl.TabIndex = 0;
             // 
             // label2
@@ -759,12 +761,22 @@ namespace ApiTester
             this.label2.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label2.Name = "label2";
             this.label2.Padding = new System.Windows.Forms.Padding(5, 0, 5, 0);
-            this.label2.Size = new System.Drawing.Size(398, 45);
+            this.label2.Size = new System.Drawing.Size(405, 45);
             this.label2.TabIndex = 1;
             this.label2.Text = "Connection string to your Azure Cosmos database instance. There your sessions (re" +
     "quests and responses) will be stored so you can share them with your team. Cosmo" +
     "s serverless tier is recommended.";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // button_settings_export
+            // 
+            this.button_settings_export.Location = new System.Drawing.Point(16, 260);
+            this.button_settings_export.Name = "button_settings_export";
+            this.button_settings_export.Size = new System.Drawing.Size(75, 23);
+            this.button_settings_export.TabIndex = 6;
+            this.button_settings_export.Text = "Export";
+            this.button_settings_export.UseVisualStyleBackColor = true;
+            this.button_settings_export.Click += new System.EventHandler(this.button_settings_export_Click);
             // 
             // Form1
             // 
@@ -850,6 +862,7 @@ namespace ApiTester
         private System.Windows.Forms.ComboBox comboBox_settings_profiles;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Button button_settings_insert;
+        private System.Windows.Forms.Button button_settings_export;
     }
 }
 

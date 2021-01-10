@@ -29,6 +29,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Update="Helpers.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="SaveSession.cs">
       <SubType>Form</SubType>
     </Compile>

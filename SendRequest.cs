@@ -24,6 +24,8 @@ namespace ApiTester
     {
         public async Task SendRequest(string request_body, string request_headers, string http_method, string request_url, string http_version, string certificate)
         {
+            this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
             HttpClientHandler handler = new HttpClientHandler();
             handler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
 
@@ -73,6 +75,7 @@ namespace ApiTester
                 }
                 catch (Exception)
                 {
+                    this.Cursor = System.Windows.Forms.Cursors.Default;
                     MessageBox.Show("Can´t retrieve selected certificate from your local certificate store.");
                 }
                 store.Dispose();
@@ -91,6 +94,8 @@ namespace ApiTester
             }
             catch (HttpRequestException ex)
             {
+                this.Cursor = System.Windows.Forms.Cursors.Default;
+
                 response.StatusCode = System.Net.HttpStatusCode.ServiceUnavailable;
                 response.Content = new StringContent(ex.InnerException.Message);
             }
@@ -102,6 +107,8 @@ namespace ApiTester
             response.Dispose();
             handler.Dispose();
             client.Dispose();
+
+            this.Cursor = System.Windows.Forms.Cursors.Default;
         }
 
         private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)

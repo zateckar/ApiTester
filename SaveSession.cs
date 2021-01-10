@@ -24,6 +24,8 @@ namespace ApiTester
     {
         public async Task SaveSession(HttpRequestMessage request, HttpResponseMessage response, System.Diagnostics.Stopwatch watch, HttpClientHandler handler)
         {
+            this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
             var sb = new StringBuilder();
             foreach (var header in response.Headers)
                 sb.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
@@ -103,7 +105,7 @@ namespace ApiTester
             }
             catch (Exception)
             {
-
+                this.Cursor = System.Windows.Forms.Cursors.Default;
                 throw;
             }
 
@@ -117,6 +119,8 @@ namespace ApiTester
             await DisplaySession(dataGridView1.Rows.Count - 1);
 
             tabControl1.SelectedTab = tabPage2;
+
+            this.Cursor = System.Windows.Forms.Cursors.Default;
         }
     }
 }
