@@ -77,13 +77,10 @@ namespace ApiTester
 
                         await LoadSettingProfile();
 
-                        LoadSessions();
-
                     }
-
                 }
 
-
+                LoadSessions();
             }
             else
             {
@@ -99,14 +96,29 @@ namespace ApiTester
 
             //Azure Cosmos
             cosmosClient = new CosmosClient(_settings.EndpointUrl, _settings.AuthorizationKey);
-            CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
-            CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
-            var sqlQueryText = "SELECT * FROM c";
-            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-            await foreach (Session s in container.GetItemQueryIterator<Session>(queryDefinition))
+
+            try
             {
-                dtSessions.Rows.Add(new object[] { s.id, s.ResponseStatusCode, s.UriHost, s.UriAbsolutePath, s.Note });
+                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
+
+                CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
+
+
+                var sqlQueryText = "SELECT * FROM c";
+                QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+                await foreach (Session s in container.GetItemQueryIterator<Session>(queryDefinition))
+                {
+                    dtSessions.Rows.Add(new object[] { s.id, s.ResponseStatusCode, s.UriHost, s.UriAbsolutePath, s.Note });
+                }
             }
+            catch (Exception ex)
+            {
+
+                MessageBox.Show(ex.Message);
+            }
+
+
+            
 
             dataGridView1.DataSource = dtSessions;
             dataGridView1.Columns[0].Visible = false;
@@ -465,8 +477,9 @@ namespace ApiTester
                 _settings.ContainerId = result.ContainerId;
                 textBox_cosmos_ContainerId.Text = _settings.ContainerId;
 
-                //_settings.Selected = true;
+                _settings.Id = result.Id;
 
+                //_settings.Selected = true;
                 cosmosClient = new CosmosClient(_settings.EndpointUrl, _settings.AuthorizationKey);
             }
 
@@ -483,7 +496,9 @@ namespace ApiTester
             _settings.ContainerId = textBox_cosmos_ContainerId.Text;
              
             await db.UpdateAsync(_settings);
-   
+
+            LoadSettings();
+
         }
 
         private async void button_settings_insert_Click(object sender, EventArgs e)
@@ -495,18 +510,17 @@ namespace ApiTester
 
    
             await db.InsertAsync(_settings);
-
+            LoadSettings();
         }
 
         private async void button_settings_delete_Click(object sender, EventArgs e)
         {
             await db.DeleteAsync(_settings);
+            LoadSettings();
         }
 
         private async void tabControl2_SelectedIndexChanged(object sender, EventArgs e)
         {
-            //TO-DO: updatovat všechny selected na false 
-
             var count = await db.ExecuteAsync("update Setting set Selected = false");
 
             _settings.Selected = true;
