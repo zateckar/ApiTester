@@ -42,16 +42,20 @@ namespace ApiTester
                 string s;
                 while ((s = reader.ReadLine()) != null)
                 {
-                    int pom1 = s.IndexOf(":");
-                    string key = s.Substring(0, pom1).Trim();
-                    string value = s.Substring(pom1 + 1, s.Length - (pom1 + 1)).Trim();
+                    if(s.Contains(":"))
+                    {
+                        int pom1 = s.IndexOf(":");
+                        string key = s.Substring(0, pom1).Trim();
+                        string value = s.Substring(pom1 + 1, s.Length - (pom1 + 1)).Trim();
 
-                    //request.Headers.TryAddWithoutValidation(key, value);
-                    content.Headers.TryAddWithoutValidation(key, value);
+                        //request.Headers.TryAddWithoutValidation(key, value);
+                        content.Headers.TryAddWithoutValidation(key, value);
+                    }
                 }
             }
 
-            if (content.Headers.Contains("traceparent") == false) content.Headers.Add("traceparent", GetTraceparent());
+            //Propably no need to automatically add a trace header....
+            //if (content.Headers.Contains("traceparent") == false) content.Headers.Add("traceparent", GetTraceparent());
 
             request.Method = new HttpMethod(http_method);
             request.RequestUri = new Uri(request_url);
@@ -101,7 +105,7 @@ namespace ApiTester
             }
 
             //Response processing//
-            await SaveSession(request, response, watch, handler);
+            SaveSession(request, response, watch, handler);
 
             request.Dispose();
             response.Dispose();

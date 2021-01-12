@@ -36,19 +36,19 @@ namespace ApiTester
             foreach (var header in response.Content.Headers)
                 sb.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
 
-            var sr = new StringBuilder();
-            //foreach (var header in request.Headers)
-            //{
-            //    sr.AppendLine(header.Key + ":" + string.Join(", ", header.Value));
-            //}
+            //var sr = new StringBuilder();
+            string requestHeaders = String.Empty;
+            foreach (var item in request.Content.Headers)
+            {
+                //sr.AppendLine(item.Key == "Set-Cookie" ? $"{item.Key}: {string.Join("\r\nSet-Cookie: ", item.Value)}" : $"{item.Key}: {string.Join(", ", item.Value)}");
 
-            foreach (var header in request.Content.Headers)
-                sr.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
+                string key = item.Key;
+                if (key.Equals("Content-Length")) continue;
 
-            //foreach (var header in client.DefaultRequestHeaders)
-            //{
-            //    sr.AppendLine(header.Key == "Set-Cookie" ? $"{header.Key}: {string.Join("\r\nSet-Cookie: ", header.Value)}" : $"{header.Key}: {string.Join(", ", header.Value)}");
-            //}
+                string val = item.Value.First();
+                requestHeaders += key + ": " + val + Environment.NewLine;
+            }
+
 
             //Response can be quite large - need to compress it.
             var ResponseBody_string = await response.Content.ReadAsStringAsync();
@@ -58,7 +58,7 @@ namespace ApiTester
             var session = new Session()
             {
                 DateTime = DateTime.Now.ToString("s"),
-                RequestHeaders = sr.ToString(),
+                RequestHeaders = requestHeaders,
                 RequestBody = await request.Content.ReadAsStringAsync(),
                 Method = request.Method.Method,
                 UriAbsoluteUri = request.RequestUri.AbsoluteUri,
@@ -89,11 +89,9 @@ namespace ApiTester
                 session.ClientCertSubject = handler.ClientCertificates[0].Subject;
             }
 
-
             //Sqlite
             //await db.InsertAsync(session);
             //session.id = session.sqliteId.ToString();
-
 
             try
             {
@@ -111,6 +109,7 @@ namespace ApiTester
 
 
             dtSessions.Rows.Add(new object[] { session.id, session.ResponseStatusCode, session.UriHost, session.UriAbsolutePath, session.Note });
+            _allSessions.Add(session);
             //int newRowIndex = dataGridView1.Rows.Add(session.Id, session.ResponseStatusCode, session.UriHost, session.UriAbsolutePath, session.Note);
             //dataGridView1.Rows[newRowIndex].Selected = true;
             // await DisplaySession(newRowIndex);

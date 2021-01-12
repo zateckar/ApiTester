@@ -26,6 +26,8 @@ namespace ApiTester
         public static ServerCertificate serverCertificate = new ServerCertificate();
         DataTable dtSessions = new DataTable();
         static Setting _settings = new Setting();
+        List<Session> _newSessions = new List<Session>();
+        List<Session> _allSessions = new List<Session>();
         CosmosClient cosmosClient;
 
         public Form1()
@@ -110,6 +112,7 @@ namespace ApiTester
                 await foreach (Session s in container.GetItemQueryIterator<Session>(queryDefinition))
                 {
                     dtSessions.Rows.Add(new object[] { s.id, s.ResponseStatusCode, s.UriHost, s.UriAbsolutePath, s.Note });
+                    _allSessions.Add(s);
 
                 }
             }
@@ -192,13 +195,15 @@ namespace ApiTester
         {
             this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
             var clickedId = dataGridView1.Rows[e.Row.Index].Cells[0].Value.ToString();
+            
+            
 
             try
             {
                 CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
                 Session session = new Session();
                 ItemResponse<Session> sessionCosmos = await container.DeleteItemAsync<Session>(clickedId, new PartitionKey(session.partition));
-         
+                _allSessions.Remove(_allSessions.Where(c => c.id.Equals(clickedId)).FirstOrDefault());
             }
             catch (Exception)
             {
@@ -206,7 +211,7 @@ namespace ApiTester
             }
             
             
-            Thread.Sleep(500);
+            Thread.Sleep(100);
             this.Cursor = System.Windows.Forms.Cursors.Default;
         }
 
@@ -222,10 +227,14 @@ namespace ApiTester
             var clickedId = dataGridView1.Rows[RowIndex].Cells["Id"].Value.ToString();
 
             //Azure Cosmos
-            CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
+            //CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
+            //Session session = new Session();
+            //ItemResponse<Session> sessionCosmos = await container.ReadItemAsync<Session>(clickedId, new PartitionKey(session.partition));
+            //session = sessionCosmos.Value;
+
             Session session = new Session();
-            ItemResponse<Session> sessionCosmos = await container.ReadItemAsync<Session>(clickedId, new PartitionKey(session.partition));
-            session = sessionCosmos.Value;
+
+            session = _allSessions.Where(c => c.id.Equals(clickedId)).FirstOrDefault();
 
             comboBox_http_method.SelectedItem = session.Method;
             comboBox_certificates.SelectedItem = session.ClientCertSubject;
