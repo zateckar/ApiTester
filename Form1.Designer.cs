@@ -57,6 +57,7 @@ namespace ApiTester
             this.label7 = new System.Windows.Forms.Label();
             this.comboBox_settings_profiles = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.button_settings_export = new System.Windows.Forms.Button();
             this.button_settings_insert = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
@@ -69,7 +70,7 @@ namespace ApiTester
             this.textBox_cosmos_AuthorizationKey = new System.Windows.Forms.TextBox();
             this.textBox_cosmos_EndpointUrl = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.button_settings_export = new System.Windows.Forms.Button();
+            this.button_settings_import = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.textBox_response_headers)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -134,7 +135,7 @@ namespace ApiTester
         '\'',
         '\''};
             this.textBox_response_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
-            this.textBox_response_headers.AutoScrollMinSize = new System.Drawing.Size(2, 19);
+            this.textBox_response_headers.AutoScrollMinSize = new System.Drawing.Size(25, 19);
             this.textBox_response_headers.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.textBox_response_headers.BackBrush = null;
             this.textBox_response_headers.BracketsHighlightStrategy = FastColoredTextBoxNS.BracketsHighlightStrategy.Strategy2;
@@ -213,7 +214,7 @@ namespace ApiTester
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(218, 34);
+            this.label1.Location = new System.Drawing.Point(300, 33);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(46, 15);
             this.label1.TabIndex = 6;
@@ -221,15 +222,15 @@ namespace ApiTester
             // 
             // numericUpDown_request
             // 
-            this.numericUpDown_request.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.numericUpDown_request.Location = new System.Drawing.Point(270, 32);
+            this.numericUpDown_request.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.numericUpDown_request.Location = new System.Drawing.Point(352, 30);
             this.numericUpDown_request.Minimum = new decimal(new int[] {
             1,
             0,
             0,
             0});
             this.numericUpDown_request.Name = "numericUpDown_request";
-            this.numericUpDown_request.Size = new System.Drawing.Size(38, 19);
+            this.numericUpDown_request.Size = new System.Drawing.Size(38, 23);
             this.numericUpDown_request.TabIndex = 5;
             this.numericUpDown_request.Value = new decimal(new int[] {
             1,
@@ -267,7 +268,7 @@ namespace ApiTester
             this.textBox_request_url.Language = FastColoredTextBoxNS.Language.HTML;
             this.textBox_request_url.LeftBracket = '<';
             this.textBox_request_url.LeftBracket2 = '(';
-            this.textBox_request_url.Location = new System.Drawing.Point(3, 3);
+            this.textBox_request_url.Location = new System.Drawing.Point(0, 3);
             this.textBox_request_url.Multiline = false;
             this.textBox_request_url.Name = "textBox_request_url";
             this.textBox_request_url.Paddings = new System.Windows.Forms.Padding(4, 2, 0, 0);
@@ -277,7 +278,7 @@ namespace ApiTester
             this.textBox_request_url.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("textBox_request_url.ServiceColors")));
             this.textBox_request_url.ShowLineNumbers = false;
             this.textBox_request_url.ShowScrollBars = false;
-            this.textBox_request_url.Size = new System.Drawing.Size(863, 21);
+            this.textBox_request_url.Size = new System.Drawing.Size(866, 21);
             this.textBox_request_url.TabIndex = 4;
             this.textBox_request_url.Zoom = 100;
             // 
@@ -291,9 +292,9 @@ namespace ApiTester
             "HTTP 1.1",
             "HTTP 2.0",
             "HTTP 3.0"});
-            this.comboBox_http_version.Location = new System.Drawing.Point(3, 30);
+            this.comboBox_http_version.Location = new System.Drawing.Point(83, 30);
             this.comboBox_http_version.Name = "comboBox_http_version";
-            this.comboBox_http_version.Size = new System.Drawing.Size(86, 23);
+            this.comboBox_http_version.Size = new System.Drawing.Size(78, 23);
             this.comboBox_http_version.TabIndex = 3;
             this.comboBox_http_version.Text = "HTTP 2.0";
             // 
@@ -303,9 +304,9 @@ namespace ApiTester
             this.comboBox_certificates.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.comboBox_certificates.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.comboBox_certificates.FormattingEnabled = true;
-            this.comboBox_certificates.Location = new System.Drawing.Point(534, 30);
+            this.comboBox_certificates.Location = new System.Drawing.Point(411, 30);
             this.comboBox_certificates.Name = "comboBox_certificates";
-            this.comboBox_certificates.Size = new System.Drawing.Size(266, 23);
+            this.comboBox_certificates.Size = new System.Drawing.Size(389, 23);
             this.comboBox_certificates.TabIndex = 2;
             // 
             // textBox_request_headers
@@ -365,7 +366,7 @@ namespace ApiTester
             "OPTIONS",
             "HEAD",
             "TRACE"});
-            this.comboBox_http_method.Location = new System.Drawing.Point(95, 30);
+            this.comboBox_http_method.Location = new System.Drawing.Point(0, 30);
             this.comboBox_http_method.Name = "comboBox_http_method";
             this.comboBox_http_method.Size = new System.Drawing.Size(77, 23);
             this.comboBox_http_method.TabIndex = 1;
@@ -492,7 +493,7 @@ namespace ApiTester
         '\'',
         '\''};
             this.textBox_response_body.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
-            this.textBox_response_body.AutoScrollMinSize = new System.Drawing.Size(2, 19);
+            this.textBox_response_body.AutoScrollMinSize = new System.Drawing.Size(25, 19);
             this.textBox_response_body.BackBrush = null;
             this.textBox_response_body.BracketsHighlightStrategy = FastColoredTextBoxNS.BracketsHighlightStrategy.Strategy2;
             this.textBox_response_body.CharHeight = 14;
@@ -520,13 +521,15 @@ namespace ApiTester
             // 
             this.dataGridView1.AllowUserToAddRows = false;
             this.dataGridView1.AllowUserToResizeRows = false;
+            this.dataGridView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCellsExceptHeader;
             this.dataGridView1.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders;
             this.dataGridView1.BackgroundColor = System.Drawing.SystemColors.ControlLight;
             this.dataGridView1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dataGridView1.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.Single;
             this.dataGridView1.ColumnHeadersVisible = false;
-            this.dataGridView1.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.dataGridView1.EnableHeadersVisualStyles = false;
             this.dataGridView1.GridColor = System.Drawing.SystemColors.Control;
             this.dataGridView1.Location = new System.Drawing.Point(3, 28);
@@ -617,10 +620,13 @@ namespace ApiTester
             // 
             // comboBox_settings_profiles
             // 
+            this.comboBox_settings_profiles.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.comboBox_settings_profiles.FormattingEnabled = true;
             this.comboBox_settings_profiles.Location = new System.Drawing.Point(133, 16);
             this.comboBox_settings_profiles.Name = "comboBox_settings_profiles";
-            this.comboBox_settings_profiles.Size = new System.Drawing.Size(262, 23);
+            this.comboBox_settings_profiles.Size = new System.Drawing.Size(292, 23);
             this.comboBox_settings_profiles.TabIndex = 4;
             this.comboBox_settings_profiles.SelectedIndexChanged += new System.EventHandler(this.comboBox_settings_profiles_SelectedIndexChanged);
             // 
@@ -628,6 +634,7 @@ namespace ApiTester
             // 
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Controls.Add(this.button_settings_import);
             this.groupBox1.Controls.Add(this.button_settings_export);
             this.groupBox1.Controls.Add(this.button_settings_insert);
             this.groupBox1.Controls.Add(this.label6);
@@ -648,8 +655,19 @@ namespace ApiTester
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Database profile";
             // 
+            // button_settings_export
+            // 
+            this.button_settings_export.Location = new System.Drawing.Point(16, 260);
+            this.button_settings_export.Name = "button_settings_export";
+            this.button_settings_export.Size = new System.Drawing.Size(75, 23);
+            this.button_settings_export.TabIndex = 6;
+            this.button_settings_export.Text = "Export db";
+            this.button_settings_export.UseVisualStyleBackColor = true;
+            this.button_settings_export.Click += new System.EventHandler(this.button_settings_export_Click);
+            // 
             // button_settings_insert
             // 
+            this.button_settings_insert.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.button_settings_insert.Location = new System.Drawing.Point(218, 260);
             this.button_settings_insert.Name = "button_settings_insert";
             this.button_settings_insert.Size = new System.Drawing.Size(85, 23);
@@ -678,6 +696,7 @@ namespace ApiTester
             // 
             // button_settings_delete
             // 
+            this.button_settings_delete.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.button_settings_delete.Location = new System.Drawing.Point(309, 260);
             this.button_settings_delete.Name = "button_settings_delete";
             this.button_settings_delete.Size = new System.Drawing.Size(85, 23);
@@ -768,15 +787,15 @@ namespace ApiTester
     "s serverless tier is recommended.";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // button_settings_export
+            // button_settings_import
             // 
-            this.button_settings_export.Location = new System.Drawing.Point(16, 260);
-            this.button_settings_export.Name = "button_settings_export";
-            this.button_settings_export.Size = new System.Drawing.Size(75, 23);
-            this.button_settings_export.TabIndex = 6;
-            this.button_settings_export.Text = "Export";
-            this.button_settings_export.UseVisualStyleBackColor = true;
-            this.button_settings_export.Click += new System.EventHandler(this.button_settings_export_Click);
+            this.button_settings_import.Location = new System.Drawing.Point(16, 226);
+            this.button_settings_import.Name = "button_settings_import";
+            this.button_settings_import.Size = new System.Drawing.Size(75, 23);
+            this.button_settings_import.TabIndex = 7;
+            this.button_settings_import.Text = "Import db";
+            this.button_settings_import.UseVisualStyleBackColor = true;
+            this.button_settings_import.Click += new System.EventHandler(this.button_settings_import_Click);
             // 
             // Form1
             // 
@@ -863,6 +882,7 @@ namespace ApiTester
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Button button_settings_insert;
         private System.Windows.Forms.Button button_settings_export;
+        private System.Windows.Forms.Button button_settings_import;
     }
 }
 

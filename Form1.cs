@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Reflection;
+using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -459,9 +460,6 @@ namespace ApiTester
                 string timestamp = DateTime.Now.ToString("yyyymmddHHmmss");
                 SQLiteAsyncConnection db = new SQLiteAsyncConnection("export-"+timestamp+".db");
 
-
-
-
                 await db.CreateTableAsync<Session>();
 
                 CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
@@ -487,6 +485,37 @@ namespace ApiTester
             {
 
                 MessageBox.Show(ex.Message);
+            }
+        }
+
+        private async void button_settings_import_Click(object sender, EventArgs e)
+        {
+           var openFileDialog1 = new OpenFileDialog();
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    var filePath = openFileDialog1.FileName;
+                    using (Stream str = openFileDialog1.OpenFile())
+                    {
+                        SQLiteAsyncConnection db = new SQLiteAsyncConnection(filePath);
+                        var query = db.Table<Session>();
+                        var result = await query.ToListAsync();
+
+                        CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
+                        CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
+
+                        foreach (var item in result)
+                        {
+                            ItemResponse<Session> createResponse = await container.UpsertItemAsync(item, new PartitionKey(item.partition));
+                        }
+                    }
+                }
+                catch (SecurityException ex)
+                {
+                    MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
+                    $"Details:\n\n{ex.StackTrace}");
+                }
             }
         }
     }
