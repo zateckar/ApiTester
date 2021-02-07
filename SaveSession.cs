@@ -1,22 +1,10 @@
 ﻿using Azure.Cosmos;
-using SQLite;
 using System;
-using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Security;
-using System.Reflection;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Xml.Linq;
 
 namespace ApiTester
 {
@@ -89,23 +77,11 @@ namespace ApiTester
                 session.ClientCertSubject = handler.ClientCertificates[0].Subject;
             }
 
+            session.id = Guid.NewGuid().ToString();
+
             //Sqlite
             //await db.InsertAsync(session);
             //session.id = session.sqliteId.ToString();
-
-            try
-            {
-                //Azure Cosmos
-                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
-                CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
-                session.id = Guid.NewGuid().ToString();
-                ItemResponse<Session> createResponse = await container.CreateItemAsync(session, new PartitionKey(session.partition));
-            }
-            catch (Exception)
-            {
-                this.Cursor = System.Windows.Forms.Cursors.Default;
-                throw;
-            }
 
 
             dtSessions.Rows.Add(new object[] { session.id, session.ResponseStatusCode, session.UriHost, session.UriAbsolutePath, session.Note });
@@ -118,6 +94,20 @@ namespace ApiTester
             await DisplaySession(dataGridView1.Rows.Count - 1);
 
             tabControl1.SelectedTab = tabPage2;
+
+            try
+            {
+                //Azure Cosmos
+                CosmosDatabase database = await cosmosClient.CreateDatabaseIfNotExistsAsync(_settings.DatabaseId);
+                CosmosContainer container = await cosmosClient.GetDatabase(_settings.DatabaseId).CreateContainerIfNotExistsAsync(_settings.ContainerId, "/partition");
+                
+                ItemResponse<Session> createResponse = await container.CreateItemAsync(session, new PartitionKey(session.partition));
+            }
+            catch (Exception)
+            {
+                this.Cursor = System.Windows.Forms.Cursors.Default;
+                throw;
+            }
 
             this.Cursor = System.Windows.Forms.Cursors.Default;
         }

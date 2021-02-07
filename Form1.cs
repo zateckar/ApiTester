@@ -4,20 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Security;
 using System.Reflection;
 using System.Security;
-using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Xml.Linq;
 
 namespace ApiTester
 {
@@ -135,7 +128,7 @@ namespace ApiTester
             dataGridView1.Columns[2].ReadOnly = true;
 
             dataGridView1.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
-            dataGridView1.Columns[4].ReadOnly = true;
+            dataGridView1.Columns[3].ReadOnly = true;
 
             dataGridView1.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
@@ -144,6 +137,16 @@ namespace ApiTester
         }
 
         private async void button_request_send_Click(object sender, EventArgs e)
+        {
+            SendRequestConsolidate();
+        }
+
+        private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.R) SendRequestConsolidate();
+        }
+
+        public async void SendRequestConsolidate()
         {
             //Works only when MaxDegreeOfParallelism = 1 - need to separate actual call from UI
             //var options = new ParallelOptions()
@@ -171,14 +174,9 @@ namespace ApiTester
             }
 
             this.Cursor = System.Windows.Forms.Cursors.Default;
-
         }
 
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-
-        public async void LoadCertificates()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public async Task LoadCertificates()
         {
             X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
 
@@ -197,8 +195,6 @@ namespace ApiTester
             this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
             var clickedId = dataGridView1.Rows[e.Row.Index].Cells[0].Value.ToString();
             
-            
-
             try
             {
                 CosmosContainer container = cosmosClient.GetContainer(_settings.DatabaseId, _settings.ContainerId);
@@ -335,7 +331,7 @@ namespace ApiTester
                 catch (Exception)
                 {
 
-                    throw;
+                   // throw;
                 }
 
 
@@ -518,6 +514,8 @@ namespace ApiTester
                 }
             }
         }
+
+
     }
 
    

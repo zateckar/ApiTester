@@ -1,22 +1,11 @@
-﻿using Azure.Cosmos;
-using SQLite;
-using System;
-using System.Collections.Generic;
-using System.Data;
+﻿using System;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
-using System.Reflection;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Xml.Linq;
 
 namespace ApiTester
 {

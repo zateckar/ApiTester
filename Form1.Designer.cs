@@ -57,6 +57,7 @@ namespace ApiTester
             this.label7 = new System.Windows.Forms.Label();
             this.comboBox_settings_profiles = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.button_settings_import = new System.Windows.Forms.Button();
             this.button_settings_export = new System.Windows.Forms.Button();
             this.button_settings_insert = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
@@ -70,7 +71,6 @@ namespace ApiTester
             this.textBox_cosmos_AuthorizationKey = new System.Windows.Forms.TextBox();
             this.textBox_cosmos_EndpointUrl = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.button_settings_import = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.textBox_response_headers)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -106,8 +106,9 @@ namespace ApiTester
             | System.Windows.Forms.AnchorStyles.Right)));
             this.button_request_send.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.button_request_send.BackColor = System.Drawing.Color.Teal;
+            this.button_request_send.FlatAppearance.BorderColor = System.Drawing.Color.Teal;
             this.button_request_send.FlatAppearance.BorderSize = 0;
-            this.button_request_send.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button_request_send.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.button_request_send.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.button_request_send.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
             this.button_request_send.Location = new System.Drawing.Point(806, 30);
@@ -135,7 +136,7 @@ namespace ApiTester
         '\'',
         '\''};
             this.textBox_response_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
-            this.textBox_response_headers.AutoScrollMinSize = new System.Drawing.Size(25, 19);
+            this.textBox_response_headers.AutoScrollMinSize = new System.Drawing.Size(2, 19);
             this.textBox_response_headers.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.textBox_response_headers.BackBrush = null;
             this.textBox_response_headers.BracketsHighlightStrategy = FastColoredTextBoxNS.BracketsHighlightStrategy.Strategy2;
@@ -493,7 +494,7 @@ namespace ApiTester
         '\'',
         '\''};
             this.textBox_response_body.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
-            this.textBox_response_body.AutoScrollMinSize = new System.Drawing.Size(25, 19);
+            this.textBox_response_body.AutoScrollMinSize = new System.Drawing.Size(2, 19);
             this.textBox_response_body.BackBrush = null;
             this.textBox_response_body.BracketsHighlightStrategy = FastColoredTextBoxNS.BracketsHighlightStrategy.Strategy2;
             this.textBox_response_body.CharHeight = 14;
@@ -543,6 +544,7 @@ namespace ApiTester
             this.dataGridView1.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellValueChanged);
             this.dataGridView1.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_RowEnter);
             this.dataGridView1.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.dataGridView1_UserDeletingRow);
+            this.dataGridView1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.dataGridView1_KeyDown);
             // 
             // splitContainer1
             // 
@@ -654,6 +656,16 @@ namespace ApiTester
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Database profile";
+            // 
+            // button_settings_import
+            // 
+            this.button_settings_import.Location = new System.Drawing.Point(16, 226);
+            this.button_settings_import.Name = "button_settings_import";
+            this.button_settings_import.Size = new System.Drawing.Size(75, 23);
+            this.button_settings_import.TabIndex = 7;
+            this.button_settings_import.Text = "Import db";
+            this.button_settings_import.UseVisualStyleBackColor = true;
+            this.button_settings_import.Click += new System.EventHandler(this.button_settings_import_Click);
             // 
             // button_settings_export
             // 
@@ -786,16 +798,6 @@ namespace ApiTester
     "quests and responses) will be stored so you can share them with your team. Cosmo" +
     "s serverless tier is recommended.";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
-            // button_settings_import
-            // 
-            this.button_settings_import.Location = new System.Drawing.Point(16, 226);
-            this.button_settings_import.Name = "button_settings_import";
-            this.button_settings_import.Size = new System.Drawing.Size(75, 23);
-            this.button_settings_import.TabIndex = 7;
-            this.button_settings_import.Text = "Import db";
-            this.button_settings_import.UseVisualStyleBackColor = true;
-            this.button_settings_import.Click += new System.EventHandler(this.button_settings_import_Click);
             // 
             // Form1
             // 
