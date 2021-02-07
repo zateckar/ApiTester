@@ -291,8 +291,7 @@ namespace ApiTester
             this.comboBox_http_version.Items.AddRange(new object[] {
             "HTTP 1.0",
             "HTTP 1.1",
-            "HTTP 2.0",
-            "HTTP 3.0"});
+            "HTTP 2.0"});
             this.comboBox_http_version.Location = new System.Drawing.Point(83, 30);
             this.comboBox_http_version.Name = "comboBox_http_version";
             this.comboBox_http_version.Size = new System.Drawing.Size(78, 23);
