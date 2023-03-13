@@ -10,7 +10,6 @@ namespace ApiTester
 {
     public partial class Form1 : Form
     {
-
         private async void LoadSettings()
         {
             comboBox_settings_profiles.Items.Clear();
