@@ -20,7 +20,7 @@
     <PackageReference Include="Fk.FCTB" Version="2.16.24.2020">
       <NoWarn>$(NoWarn);NU1701</NoWarn>
     </PackageReference>
-    <PackageReference Include="sqlite-net-pcl" Version="1.7.335" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
   </ItemGroup>
 
   <ItemGroup>
