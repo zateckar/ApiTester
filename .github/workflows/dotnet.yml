@@ -6,7 +6,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v1.7.2
       with:
@@ -26,7 +26,7 @@ jobs:
     - name: Create archive
       run: Compress-Archive -Path 'D:\a\ApiTester\ApiTester\bin\Release\net8.0-windows\*' -DestinationPath 'D:\a\ApiTester\ApiTester\bin\Release\ApiTester.zip'
     - name: Create Release
-      uses: ncipollo/release-action@v1.7.3
+      uses: ncipollo/release-action@v1
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
