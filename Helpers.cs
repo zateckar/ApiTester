@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
+using ZstdSharp;
 
 namespace ApiTester
 {
@@ -127,50 +128,68 @@ namespace ApiTester
 
         public static byte[] Zip(string textToZip)
         {
-            using (var memoryStream = new MemoryStream())
+            //using (var memoryStream = new MemoryStream())
+            //{
+            //    using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            //    {
+            //        var demoFile = zipArchive.CreateEntry("zipped.txt");
+
+            //        using (var entryStream = demoFile.Open())
+            //        {
+            //            using (var streamWriter = new StreamWriter(entryStream))
+            //            {
+            //                streamWriter.Write(textToZip);
+            //            }
+            //        }
+            //    }
+
+            //    return memoryStream.ToArray();
+            //}
+
+
+
+            using (var compressor = new Compressor(1))
             {
-                using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
-                {
-                    var demoFile = zipArchive.CreateEntry("zipped.txt");
-
-                    using (var entryStream = demoFile.Open())
-                    {
-                        using (var streamWriter = new StreamWriter(entryStream))
-                        {
-                            streamWriter.Write(textToZip);
-                        }
-                    }
-                }
-
-                return memoryStream.ToArray();
+                byte[] input = Encoding.Default.GetBytes(textToZip);
+                byte[] compressed = compressor.Wrap(input).ToArray();
+                return compressed;
             }
         }
 
         public static string Unzip(byte[] zippedBuffer)
         {
-            using (var zippedStream = new MemoryStream(zippedBuffer))
+            //using (var zippedStream = new MemoryStream(zippedBuffer))
+            //{
+            //    using (var archive = new ZipArchive(zippedStream))
+            //    {
+            //        var entry = archive.Entries.FirstOrDefault();
+
+            //        if (entry != null)
+            //        {
+            //            using (var unzippedEntryStream = entry.Open())
+            //            {
+            //                using (var ms = new MemoryStream())
+            //                {
+            //                    unzippedEntryStream.CopyTo(ms);
+            //                    var unzippedArray = ms.ToArray();
+
+            //                    return Encoding.Default.GetString(unzippedArray);
+            //                }
+            //            }
+            //        }
+
+            //        return null;
+            //    }
+            //}
+
+            if (zippedBuffer.Length == 0)
             {
-                using (var archive = new ZipArchive(zippedStream))
-                {
-                    var entry = archive.Entries.FirstOrDefault();
-
-                    if (entry != null)
-                    {
-                        using (var unzippedEntryStream = entry.Open())
-                        {
-                            using (var ms = new MemoryStream())
-                            {
-                                unzippedEntryStream.CopyTo(ms);
-                                var unzippedArray = ms.ToArray();
-
-                                return Encoding.Default.GetString(unzippedArray);
-                            }
-                        }
-                    }
-
-                    return null;
-                }
+                return null;
             }
+
+            using var decompressor = new Decompressor();
+            var decompressed = decompressor.Unwrap(zippedBuffer);
+            return Encoding.Default.GetString(decompressed);
         }
     }
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -13,6 +14,7 @@ namespace ApiTester
         private async void LoadSettings()
         {
             comboBox_settings_profiles.Items.Clear();
+
 
             List<Setting> result = new List<Setting>();
             try
@@ -29,13 +31,14 @@ namespace ApiTester
                 foreach (Setting item in result)
                 {
                     comboBox_settings_profiles.Items.Add(item);
-                    //copyToToolStripMenuItem.DropDownItems.Add(item.ProfileName);
 
                     ToolStripItem tsItem = new ToolStripMenuItem();
                     tsItem.Text = item.ProfileName;
                     tsItem.Name = item.Id.ToString();
 
                     copyToToolStripMenuItem.DropDownItems.Add(tsItem);
+                    copyToToolStripMenuItem1.DropDownItems.Add(tsItem);
+
 
                     if (item.Selected)
                     {
@@ -43,12 +46,22 @@ namespace ApiTester
                         await LoadSettingProfile(item.Id);
                     }
                 }
+
+                //await dbSync();
+
                 LoadSessions();
             }
             else
             {
-                MessageBox.Show("Provide connection to your database, please.");
-                tabControl2.SelectedTab = tabPage4;
+                _settings.Endpoint = "default.sqlite";
+                _settings.ProfileName = "default";
+                _settings.Selected = true;
+
+                var res = await settingsConn.InsertAsync(_settings);
+                LoadSettings();
+
+                //MessageBox.Show("Provide connection to your database, please.");
+                //tabControl2.SelectedTab = tabPage4;
             }
         }
 
@@ -68,10 +81,71 @@ namespace ApiTester
             {
                 textBox_cosmos_Endpoint.Text = _settings.Endpoint;
                 textBox_profileName.Text = _settings.ProfileName;
+                textBox_blob_sas_token.Text = _settings.BlobSASToken;
+                textBox_blob_container.Text = _settings.BlobContainer;
+                textBox_blob_storage_account.Text = _settings.BlobStorageAccount;
                 sessionsConn = new SQLiteAsyncConnection(_settings.Endpoint);
 
                 ApplySavedSplitterData();
+
             }
+        }
+
+
+        /// <summary>
+        /// po každém přidání, smazání, groupování nebo poznámce updatovat verzi +1
+        /// někam do settings (při startu, přes lodasessions) přidat níže uvedenou kontrolu verze
+        ///     stáhnout blob - přečíst verzi
+        ///     přečíst verzi lokální db
+        ///     pokud je nižší stažená, uplodovat, pokud lokální, přejmenovat lokální a nahradit staženou
+        /// ukládat z formu a načítat do něj připojovací informace k blobu.
+        /// </summary>
+        public async Task dbSync()
+        {
+            try
+            {
+                //read local version
+                await sessionsConn.CreateTableAsync<Meta>();
+
+                AsyncTableQuery<Meta> queryLocal = sessionsConn.Table<Meta>();
+                var metalocal = await queryLocal.ToListAsync();
+                int localDbVersion = metalocal.Select(s => s.DbVersion).FirstOrDefault();
+                sessionsConn.CloseAsync();
+
+                //download blob
+                FileInfo localdb = new FileInfo(_settings.Endpoint);
+                string blobDbFullName = localdb.FullName + "_" + DateTime.Now.ToFileTime();
+                await BlobDownload(localdb.Name, blobDbFullName);
+
+                //read version from blob
+                SQLiteAsyncConnection blobConn = new(blobDbFullName);
+                await blobConn.CreateTableAsync<Meta>();
+                AsyncTableQuery<Meta> queryBlob = blobConn.Table<Meta>();
+                var metaBlob = await queryBlob.ToListAsync();
+                int blobDbVersion = metaBlob.Select(s => s.DbVersion).FirstOrDefault();
+                blobConn.CloseAsync();
+
+                //compare versions
+                if (localDbVersion > blobDbVersion)
+                {
+                    //upload local db to blob
+                    await BlobUpload(localdb.FullName, localDbVersion);
+                }
+
+                if (localDbVersion < blobDbVersion)
+                {
+                    //backup local db
+                    File.Move(localdb.FullName, localdb.FullName + "_" + DateTime.Now.ToFileTime());
+
+                    //rename downloaded blob as local
+                    File.Move(blobDbFullName, localdb.FullName);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Problem with blob synchronization: " + ex.Message);
+            }
+
         }
 
 
@@ -97,6 +171,9 @@ namespace ApiTester
         {
             _settings.Endpoint = textBox_cosmos_Endpoint.Text;
             _settings.ProfileName = textBox_profileName.Text;
+            _settings.BlobSASToken = textBox_blob_sas_token.Text;
+            _settings.BlobContainer = textBox_blob_container.Text;
+            _settings.BlobStorageAccount = textBox_blob_storage_account.Text;
 
             await settingsConn.UpdateAsync(_settings);
             LoadSettings();
@@ -107,6 +184,9 @@ namespace ApiTester
         {
             _settings.Endpoint = textBox_cosmos_Endpoint.Text;
             _settings.ProfileName = textBox_profileName.Text;
+            _settings.BlobSASToken = textBox_blob_sas_token.Text;
+            _settings.BlobContainer = textBox_blob_container.Text;
+            _settings.BlobStorageAccount = textBox_blob_storage_account.Text;
 
             await settingsConn.InsertAsync(_settings);
             LoadSettings();

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows8.0</TargetFramework>
+	<TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <StartupObject></StartupObject>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
@@ -16,6 +16,8 @@
     <ApplicationIcon>icons.ico</ApplicationIcon>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+	  <ImplicitUsings>enable</ImplicitUsings>
+	  <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -36,7 +38,8 @@
   <ItemGroup>
     <PackageReference Include="FastColoredTextBox.Net6" Version="1.0.0" />
     <PackageReference Include="PW.AutocompleteMenu" Version="1.4.0" />
-    <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+    <PackageReference Include="ZstdSharp.Port" Version="0.8.1" />
   </ItemGroup>
 
 <ItemGroup>
@@ -49,12 +52,8 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Update="Helpers.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="SaveSession.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="Helpers.cs" />
+    <Compile Update="SaveSession.cs" />
   </ItemGroup>
 
   <ItemGroup>

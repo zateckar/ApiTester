@@ -1,3 +1,4 @@
+using System.Drawing;
 
 namespace ApiTester
 {
@@ -29,1039 +30,1220 @@ namespace ApiTester
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
-            this.button_request_send = new System.Windows.Forms.Button();
-            this.splitContainer2 = new System.Windows.Forms.SplitContainer();
-            this.splitContainer6 = new System.Windows.Forms.SplitContainer();
-            this.label_group = new System.Windows.Forms.Label();
-            this.button_saveGroup = new System.Windows.Forms.Button();
-            this.label_displayed_Id = new System.Windows.Forms.Label();
-            this.comboBox_group = new System.Windows.Forms.ComboBox();
-            this.button_clearAll = new System.Windows.Forms.Button();
-            this.button_text_utils = new System.Windows.Forms.Button();
-            this.textBox_request_url = new FastColoredTextBoxNS.FastColoredTextBox();
-            this.label_repeat = new System.Windows.Forms.Label();
-            this.comboBox_certificates = new System.Windows.Forms.ComboBox();
-            this.numericUpDown_request = new System.Windows.Forms.NumericUpDown();
-            this.comboBox_http_method = new System.Windows.Forms.ComboBox();
-            this.comboBox_http_version = new System.Windows.Forms.ComboBox();
-            this.splitContainer5 = new System.Windows.Forms.SplitContainer();
-            this.textBox_request_headers = new FastColoredTextBoxNS.FastColoredTextBox();
-            this.textBox_request_body = new FastColoredTextBoxNS.FastColoredTextBox();
-            this.statusStrip_response_stats = new System.Windows.Forms.StatusStrip();
-            this.toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
-            this.copyToToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripDropDownButton_response_stats_certificate = new System.Windows.Forms.ToolStripDropDownButton();
-            this.toolStripStatusLabel_response_stats_http_version = new System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripStatusLabel_response_stats_datetime = new System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripStatusLabel_response_stats_response_time = new System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripStatusLabel_response_stats_certificate = new System.Windows.Forms.ToolStripStatusLabel();
-            this.splitContainer3 = new System.Windows.Forms.SplitContainer();
-            this.textBox_response_headers = new FastColoredTextBoxNS.FastColoredTextBox();
-            this.textBox_response_body = new FastColoredTextBoxNS.FastColoredTextBox();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
-            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.tabControl2 = new System.Windows.Forms.TabControl();
-            this.tabPage3 = new System.Windows.Forms.TabPage();
-            this.splitContainer4 = new System.Windows.Forms.SplitContainer();
-            this.textBox_filter = new System.Windows.Forms.TextBox();
-            this.comboBox_filter_group = new System.Windows.Forms.ComboBox();
-            this.tabPage4 = new System.Windows.Forms.TabPage();
-            this.label7 = new System.Windows.Forms.Label();
-            this.comboBox_settings_profiles = new System.Windows.Forms.ComboBox();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.label9 = new System.Windows.Forms.Label();
-            this.textBox_profileName = new System.Windows.Forms.TextBox();
-            this.button_settings_import = new System.Windows.Forms.Button();
-            this.button_settings_export = new System.Windows.Forms.Button();
-            this.button_settings_insert = new System.Windows.Forms.Button();
-            this.button_settings_delete = new System.Windows.Forms.Button();
-            this.button_settings_save = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
-            this.textBox_cosmos_Endpoint = new System.Windows.Forms.TextBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.autocompleteMenu1 = new AutocompleteMenuNS.AutocompleteMenu();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
-            this.splitContainer2.Panel1.SuspendLayout();
-            this.splitContainer2.Panel2.SuspendLayout();
-            this.splitContainer2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer6)).BeginInit();
-            this.splitContainer6.Panel1.SuspendLayout();
-            this.splitContainer6.Panel2.SuspendLayout();
-            this.splitContainer6.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_request_url)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_request)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer5)).BeginInit();
-            this.splitContainer5.Panel1.SuspendLayout();
-            this.splitContainer5.Panel2.SuspendLayout();
-            this.splitContainer5.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_request_headers)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_request_body)).BeginInit();
-            this.statusStrip_response_stats.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer3)).BeginInit();
-            this.splitContainer3.Panel1.SuspendLayout();
-            this.splitContainer3.Panel2.SuspendLayout();
-            this.splitContainer3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_response_headers)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_response_body)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
-            this.splitContainer1.Panel1.SuspendLayout();
-            this.splitContainer1.Panel2.SuspendLayout();
-            this.splitContainer1.SuspendLayout();
-            this.tabControl2.SuspendLayout();
-            this.tabPage3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer4)).BeginInit();
-            this.splitContainer4.Panel1.SuspendLayout();
-            this.splitContainer4.Panel2.SuspendLayout();
-            this.splitContainer4.SuspendLayout();
-            this.tabPage4.SuspendLayout();
-            this.groupBox1.SuspendLayout();
-            this.SuspendLayout();
+            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
+            DataGridViewCellStyle dataGridViewCellStyle2 = new DataGridViewCellStyle();
+            button_request_send = new Button();
+            textBox_request_headers = new FastColoredTextBoxNS.FastColoredTextBox();
+            textBox_request_body = new FastColoredTextBoxNS.FastColoredTextBox();
+            splitContainer6_main_right = new SplitContainer();
+            label_group = new Label();
+            button_saveGroup = new Button();
+            label_displayed_Id = new Label();
+            comboBox_group = new ComboBox();
+            textBox_request_url = new FastColoredTextBoxNS.FastColoredTextBox();
+            comboBox_certificates = new ComboBox();
+            comboBox_http_method = new ComboBox();
+            splitContainer5_reqres = new SplitContainer();
+            tabControl1 = new TabControl();
+            tabPage_request_body = new TabPage();
+            tabPage_request_header = new TabPage();
+            tabControl_response = new TabControl();
+            tabPage_response_body = new TabPage();
+            textBox_response_body = new FastColoredTextBoxNS.FastColoredTextBox();
+            tabPage_response_headers = new TabPage();
+            textBox_response_headers = new FastColoredTextBoxNS.FastColoredTextBox();
+            tabPage_statistics_information = new TabPage();
+            listView1 = new ListView();
+            statusStrip_response_stats = new StatusStrip();
+            toolStripDropDownButton1 = new ToolStripDropDownButton();
+            copyToToolStripMenuItem = new ToolStripMenuItem();
+            toolStripDropDownButton_text_utils = new ToolStripDropDownButton();
+            toolStripDropDownButton_request = new ToolStripDropDownButton();
+            httpVersionToolStripMenuItem = new ToolStripMenuItem();
+            toolStripComboBox_http_version = new ToolStripComboBox();
+            repeatToolStripMenuItem = new ToolStripMenuItem();
+            toolStripTextBox_repeat = new ToolStripTextBox();
+            toolStripDropDownButton_clearAll = new ToolStripDropDownButton();
+            toolStripDropDownButton_response_stats_certificate = new ToolStripDropDownButton();
+            toolStripStatusLabel_response_stats_http_version = new ToolStripStatusLabel();
+            toolStripStatusLabel_response_stats_datetime = new ToolStripStatusLabel();
+            toolStripStatusLabel_response_stats_response_time = new ToolStripStatusLabel();
+            toolStripStatusLabel_response_stats_certificate = new ToolStripStatusLabel();
+            dataGridView1 = new DataGridView();
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            copyToToolStripMenuItem1 = new ToolStripMenuItem();
+            splitContainer1_main_form = new SplitContainer();
+            tabControl2 = new TabControl();
+            tabPage3 = new TabPage();
+            splitContainer4 = new SplitContainer();
+            textBox_filter = new TextBox();
+            comboBox_filter_group = new ComboBox();
+            tabPage4 = new TabPage();
+            label7 = new Label();
+            comboBox_settings_profiles = new ComboBox();
+            groupBox1 = new GroupBox();
+            groupBox2 = new GroupBox();
+            button_blob_list = new Button();
+            listBox_blob = new ListBox();
+            textBox_blob_container = new TextBox();
+            button_blob = new Button();
+            label5 = new Label();
+            textBox_blob_storage_account = new TextBox();
+            textBox_blob_sas_token = new TextBox();
+            label1 = new Label();
+            label4 = new Label();
+            label9 = new Label();
+            textBox_profileName = new TextBox();
+            button_settings_import = new Button();
+            button_settings_export = new Button();
+            button_settings_insert = new Button();
+            button_settings_delete = new Button();
+            button_settings_save = new Button();
+            label3 = new Label();
+            textBox_cosmos_Endpoint = new TextBox();
+            label2 = new Label();
+            autocompleteMenu1 = new AutocompleteMenuNS.AutocompleteMenu();
+            ((System.ComponentModel.ISupportInitialize)textBox_request_headers).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)textBox_request_body).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)splitContainer6_main_right).BeginInit();
+            splitContainer6_main_right.Panel1.SuspendLayout();
+            splitContainer6_main_right.Panel2.SuspendLayout();
+            splitContainer6_main_right.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)textBox_request_url).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)splitContainer5_reqres).BeginInit();
+            splitContainer5_reqres.Panel1.SuspendLayout();
+            splitContainer5_reqres.Panel2.SuspendLayout();
+            splitContainer5_reqres.SuspendLayout();
+            tabControl1.SuspendLayout();
+            tabPage_request_body.SuspendLayout();
+            tabPage_request_header.SuspendLayout();
+            tabControl_response.SuspendLayout();
+            tabPage_response_body.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)textBox_response_body).BeginInit();
+            tabPage_response_headers.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)textBox_response_headers).BeginInit();
+            tabPage_statistics_information.SuspendLayout();
+            statusStrip_response_stats.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
+            contextMenuStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1_main_form).BeginInit();
+            splitContainer1_main_form.Panel1.SuspendLayout();
+            splitContainer1_main_form.Panel2.SuspendLayout();
+            splitContainer1_main_form.SuspendLayout();
+            tabControl2.SuspendLayout();
+            tabPage3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer4).BeginInit();
+            splitContainer4.Panel1.SuspendLayout();
+            splitContainer4.Panel2.SuspendLayout();
+            splitContainer4.SuspendLayout();
+            tabPage4.SuspendLayout();
+            groupBox1.SuspendLayout();
+            groupBox2.SuspendLayout();
+            SuspendLayout();
             // 
             // button_request_send
             // 
-            this.button_request_send.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_request_send.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.button_request_send.BackColor = System.Drawing.Color.DarkOrange;
-            this.button_request_send.FlatAppearance.BorderColor = System.Drawing.Color.Teal;
-            this.button_request_send.FlatAppearance.BorderSize = 0;
-            this.button_request_send.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button_request_send.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.button_request_send.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.button_request_send.Image = ((System.Drawing.Image)(resources.GetObject("button_request_send.Image")));
-            this.button_request_send.Location = new System.Drawing.Point(1242, 9);
-            this.button_request_send.Margin = new System.Windows.Forms.Padding(4);
-            this.button_request_send.Name = "button_request_send";
-            this.button_request_send.Size = new System.Drawing.Size(70, 66);
-            this.button_request_send.TabIndex = 0;
-            this.button_request_send.UseVisualStyleBackColor = false;
-            this.button_request_send.Click += new System.EventHandler(this.Button_request_send_Click);
-            // 
-            // splitContainer2
-            // 
-            this.splitContainer2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer2.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer2.Margin = new System.Windows.Forms.Padding(4);
-            this.splitContainer2.Name = "splitContainer2";
-            this.splitContainer2.Orientation = System.Windows.Forms.Orientation.Horizontal;
-            // 
-            // splitContainer2.Panel1
-            // 
-            this.splitContainer2.Panel1.Controls.Add(this.splitContainer6);
-            this.splitContainer2.Panel1MinSize = 100;
-            // 
-            // splitContainer2.Panel2
-            // 
-            this.splitContainer2.Panel2.Controls.Add(this.statusStrip_response_stats);
-            this.splitContainer2.Panel2.Controls.Add(this.splitContainer3);
-            this.splitContainer2.Panel2MinSize = 100;
-            this.splitContainer2.Size = new System.Drawing.Size(1325, 1559);
-            this.splitContainer2.SplitterDistance = 618;
-            this.splitContainer2.SplitterWidth = 5;
-            this.splitContainer2.TabIndex = 4;
-            // 
-            // splitContainer6
-            // 
-            this.splitContainer6.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer6.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
-            this.splitContainer6.IsSplitterFixed = true;
-            this.splitContainer6.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer6.Margin = new System.Windows.Forms.Padding(2);
-            this.splitContainer6.Name = "splitContainer6";
-            this.splitContainer6.Orientation = System.Windows.Forms.Orientation.Horizontal;
-            // 
-            // splitContainer6.Panel1
-            // 
-            this.splitContainer6.Panel1.Controls.Add(this.label_group);
-            this.splitContainer6.Panel1.Controls.Add(this.button_saveGroup);
-            this.splitContainer6.Panel1.Controls.Add(this.label_displayed_Id);
-            this.splitContainer6.Panel1.Controls.Add(this.comboBox_group);
-            this.splitContainer6.Panel1.Controls.Add(this.button_clearAll);
-            this.splitContainer6.Panel1.Controls.Add(this.button_text_utils);
-            this.splitContainer6.Panel1.Controls.Add(this.button_request_send);
-            this.splitContainer6.Panel1.Controls.Add(this.textBox_request_url);
-            this.splitContainer6.Panel1.Controls.Add(this.label_repeat);
-            this.splitContainer6.Panel1.Controls.Add(this.comboBox_certificates);
-            this.splitContainer6.Panel1.Controls.Add(this.numericUpDown_request);
-            this.splitContainer6.Panel1.Controls.Add(this.comboBox_http_method);
-            this.splitContainer6.Panel1.Controls.Add(this.comboBox_http_version);
-            this.splitContainer6.Panel1MinSize = 90;
-            // 
-            // splitContainer6.Panel2
-            // 
-            this.splitContainer6.Panel2.Controls.Add(this.splitContainer5);
-            this.splitContainer6.Size = new System.Drawing.Size(1325, 618);
-            this.splitContainer6.SplitterDistance = 90;
-            this.splitContainer6.TabIndex = 8;
-            // 
-            // label_group
-            // 
-            this.label_group.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.label_group.AutoSize = true;
-            this.label_group.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label_group.Location = new System.Drawing.Point(563, 54);
-            this.label_group.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label_group.Name = "label_group";
-            this.label_group.Size = new System.Drawing.Size(48, 17);
-            this.label_group.TabIndex = 12;
-            this.label_group.Text = "Group:";
-            // 
-            // button_saveGroup
-            // 
-            this.button_saveGroup.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_saveGroup.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button_saveGroup.Image = ((System.Drawing.Image)(resources.GetObject("button_saveGroup.Image")));
-            this.button_saveGroup.Location = new System.Drawing.Point(771, 47);
-            this.button_saveGroup.Margin = new System.Windows.Forms.Padding(2);
-            this.button_saveGroup.Name = "button_saveGroup";
-            this.button_saveGroup.Size = new System.Drawing.Size(40, 30);
-            this.button_saveGroup.TabIndex = 11;
-            this.button_saveGroup.Click += new System.EventHandler(this.Button_saveGroup_Click);
-            // 
-            // label_displayed_Id
-            // 
-            this.label_displayed_Id.Location = new System.Drawing.Point(320, 54);
-            this.label_displayed_Id.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label_displayed_Id.Name = "label_displayed_Id";
-            this.label_displayed_Id.Size = new System.Drawing.Size(18, 20);
-            this.label_displayed_Id.TabIndex = 10;
-            this.label_displayed_Id.Visible = false;
-            // 
-            // comboBox_group
-            // 
-            this.comboBox_group.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.comboBox_group.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.comboBox_group.FormattingEnabled = true;
-            this.comboBox_group.Location = new System.Drawing.Point(613, 50);
-            this.comboBox_group.Margin = new System.Windows.Forms.Padding(4);
-            this.comboBox_group.Name = "comboBox_group";
-            this.comboBox_group.Size = new System.Drawing.Size(149, 25);
-            this.comboBox_group.TabIndex = 9;
-            // 
-            // button_clearAll
-            // 
-            this.button_clearAll.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button_clearAll.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.button_clearAll.Image = ((System.Drawing.Image)(resources.GetObject("button_clearAll.Image")));
-            this.button_clearAll.Location = new System.Drawing.Point(395, 48);
-            this.button_clearAll.Margin = new System.Windows.Forms.Padding(2);
-            this.button_clearAll.Name = "button_clearAll";
-            this.button_clearAll.Size = new System.Drawing.Size(40, 30);
-            this.button_clearAll.TabIndex = 8;
-            this.button_clearAll.Click += new System.EventHandler(this.Button_clearAll_Click);
-            // 
-            // button_text_utils
-            // 
-            this.button_text_utils.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button_text_utils.Image = ((System.Drawing.Image)(resources.GetObject("button_text_utils.Image")));
-            this.button_text_utils.Location = new System.Drawing.Point(338, 48);
-            this.button_text_utils.Margin = new System.Windows.Forms.Padding(2);
-            this.button_text_utils.Name = "button_text_utils";
-            this.button_text_utils.Size = new System.Drawing.Size(40, 30);
-            this.button_text_utils.TabIndex = 7;
-            this.button_text_utils.Click += new System.EventHandler(this.Button_text_utils_Click);
-            // 
-            // textBox_request_url
-            // 
-            this.textBox_request_url.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_request_url.AutoCompleteBracketsList = new char[] {
-        '(',
-        ')',
-        '{',
-        '}',
-        '[',
-        ']',
-        '\"',
-        '\"',
-        '\'',
-        '\''};
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_request_url, null);
-            this.textBox_request_url.AutoIndentCharsPatterns = "";
-            this.textBox_request_url.AutoScrollMinSize = new System.Drawing.Size(6, 21);
-            this.textBox_request_url.BackBrush = null;
-            this.textBox_request_url.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.textBox_request_url.CharHeight = 17;
-            this.textBox_request_url.CharWidth = 8;
-            this.textBox_request_url.CommentPrefix = null;
-            this.textBox_request_url.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.textBox_request_url.DefaultMarkerSize = 8;
-            this.textBox_request_url.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.textBox_request_url.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.textBox_request_url.HighlightFoldingIndicator = false;
-            this.textBox_request_url.HighlightingRangeType = FastColoredTextBoxNS.HighlightingRangeType.AllTextRange;
-            this.textBox_request_url.IsReplaceMode = false;
-            this.textBox_request_url.LeftBracket = '<';
-            this.textBox_request_url.LeftBracket2 = '(';
-            this.textBox_request_url.Location = new System.Drawing.Point(9, 9);
-            this.textBox_request_url.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_request_url.Multiline = false;
-            this.textBox_request_url.Name = "textBox_request_url";
-            this.textBox_request_url.Paddings = new System.Windows.Forms.Padding(4, 4, 0, 0);
-            this.textBox_request_url.RightBracket = '>';
-            this.textBox_request_url.RightBracket2 = ')';
-            this.textBox_request_url.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(255)))), ((int)(((byte)(140)))), ((int)(((byte)(0)))));
-            this.textBox_request_url.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("textBox_request_url.ServiceColors")));
-            this.textBox_request_url.ShowLineNumbers = false;
-            this.textBox_request_url.ShowScrollBars = false;
-            this.textBox_request_url.Size = new System.Drawing.Size(1225, 30);
-            this.textBox_request_url.TabIndex = 4;
-            this.textBox_request_url.Zoom = 100;
-            this.textBox_request_url.TextChanged += new System.EventHandler<FastColoredTextBoxNS.TextChangedEventArgs>(this.TextBox_request_url_TextChanged);
-            // 
-            // label_repeat
-            // 
-            this.label_repeat.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.label_repeat.AutoSize = true;
-            this.label_repeat.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label_repeat.Location = new System.Drawing.Point(212, 55);
-            this.label_repeat.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label_repeat.Name = "label_repeat";
-            this.label_repeat.Size = new System.Drawing.Size(52, 17);
-            this.label_repeat.TabIndex = 6;
-            this.label_repeat.Text = "Repeat:";
-            // 
-            // comboBox_certificates
-            // 
-            this.comboBox_certificates.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.comboBox_certificates.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.comboBox_certificates.FormattingEnabled = true;
-            this.comboBox_certificates.Location = new System.Drawing.Point(835, 50);
-            this.comboBox_certificates.Margin = new System.Windows.Forms.Padding(4);
-            this.comboBox_certificates.Name = "comboBox_certificates";
-            this.comboBox_certificates.Size = new System.Drawing.Size(399, 25);
-            this.comboBox_certificates.TabIndex = 2;
-            // 
-            // numericUpDown_request
-            // 
-            this.numericUpDown_request.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.numericUpDown_request.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numericUpDown_request.Location = new System.Drawing.Point(266, 51);
-            this.numericUpDown_request.Margin = new System.Windows.Forms.Padding(4);
-            this.numericUpDown_request.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.numericUpDown_request.Name = "numericUpDown_request";
-            this.numericUpDown_request.Size = new System.Drawing.Size(51, 25);
-            this.numericUpDown_request.TabIndex = 5;
-            this.numericUpDown_request.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // comboBox_http_method
-            // 
-            this.comboBox_http_method.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left)));
-            this.comboBox_http_method.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.comboBox_http_method.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.comboBox_http_method.FormattingEnabled = true;
-            this.comboBox_http_method.Items.AddRange(new object[] {
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS",
-            "HEAD",
-            "TRACE"});
-            this.comboBox_http_method.Location = new System.Drawing.Point(10, 50);
-            this.comboBox_http_method.Margin = new System.Windows.Forms.Padding(4);
-            this.comboBox_http_method.Name = "comboBox_http_method";
-            this.comboBox_http_method.Size = new System.Drawing.Size(78, 25);
-            this.comboBox_http_method.TabIndex = 1;
-            this.comboBox_http_method.Text = "GET";
-            // 
-            // comboBox_http_version
-            // 
-            this.comboBox_http_version.Font = new System.Drawing.Font("Segoe UI", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.comboBox_http_version.FormattingEnabled = true;
-            this.comboBox_http_version.Items.AddRange(new object[] {
-            "HTTP 1.0",
-            "HTTP 1.1",
-            "HTTP 2.0"});
-            this.comboBox_http_version.Location = new System.Drawing.Point(102, 50);
-            this.comboBox_http_version.Margin = new System.Windows.Forms.Padding(4);
-            this.comboBox_http_version.Name = "comboBox_http_version";
-            this.comboBox_http_version.Size = new System.Drawing.Size(88, 25);
-            this.comboBox_http_version.TabIndex = 3;
-            this.comboBox_http_version.Text = "HTTP 1.1";
-            // 
-            // splitContainer5
-            // 
-            this.splitContainer5.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer5.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
-            this.splitContainer5.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer5.Margin = new System.Windows.Forms.Padding(2);
-            this.splitContainer5.Name = "splitContainer5";
-            // 
-            // splitContainer5.Panel1
-            // 
-            this.splitContainer5.Panel1.Controls.Add(this.textBox_request_headers);
-            // 
-            // splitContainer5.Panel2
-            // 
-            this.splitContainer5.Panel2.Controls.Add(this.textBox_request_body);
-            this.splitContainer5.Size = new System.Drawing.Size(1325, 524);
-            this.splitContainer5.SplitterDistance = 504;
-            this.splitContainer5.TabIndex = 7;
+            button_request_send.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            button_request_send.BackColor = Color.DarkOrange;
+            button_request_send.FlatAppearance.BorderColor = Color.Black;
+            button_request_send.FlatAppearance.BorderSize = 0;
+            button_request_send.FlatAppearance.MouseDownBackColor = Color.Peru;
+            button_request_send.FlatStyle = FlatStyle.Flat;
+            button_request_send.Image = (Image)resources.GetObject("button_request_send.Image");
+            button_request_send.Location = new Point(1258, 31);
+            button_request_send.Margin = new Padding(4);
+            button_request_send.Name = "button_request_send";
+            button_request_send.Size = new Size(65, 47);
+            button_request_send.TabIndex = 0;
+            button_request_send.UseVisualStyleBackColor = false;
+            button_request_send.Click += Button_request_send_Click;
             // 
             // textBox_request_headers
             // 
-            this.textBox_request_headers.AutoCompleteBracketsList = new char[] {
-        '(',
-        ')',
-        '{',
-        '}',
-        '[',
-        ']',
-        '\"',
-        '\"',
-        '\'',
-        '\''};
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_request_headers, null);
-            this.textBox_request_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>.+)\r\n";
-            this.textBox_request_headers.AutoScrollMinSize = new System.Drawing.Size(0, 22);
-            this.textBox_request_headers.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.textBox_request_headers.BackBrush = null;
-            this.textBox_request_headers.CharHeight = 17;
-            this.textBox_request_headers.CharWidth = 8;
-            this.textBox_request_headers.CommentPrefix = "--";
-            this.textBox_request_headers.CurrentLineColor = System.Drawing.Color.Gainsboro;
-            this.textBox_request_headers.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.textBox_request_headers.DefaultMarkerSize = 8;
-            this.textBox_request_headers.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.textBox_request_headers.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_request_headers.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.textBox_request_headers.HighlightFoldingIndicator = false;
-            this.textBox_request_headers.IsReplaceMode = false;
-            this.textBox_request_headers.LeftBracket = '(';
-            this.textBox_request_headers.LeftBracket2 = '{';
-            this.textBox_request_headers.LineNumberColor = System.Drawing.SystemColors.ButtonShadow;
-            this.textBox_request_headers.Location = new System.Drawing.Point(0, 0);
-            this.textBox_request_headers.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_request_headers.Name = "textBox_request_headers";
-            this.textBox_request_headers.Paddings = new System.Windows.Forms.Padding(0, 5, 0, 0);
-            this.textBox_request_headers.RightBracket = ')';
-            this.textBox_request_headers.RightBracket2 = '}';
-            this.textBox_request_headers.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(255)))), ((int)(((byte)(140)))), ((int)(((byte)(0)))));
-            this.textBox_request_headers.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("textBox_request_headers.ServiceColors")));
-            this.textBox_request_headers.ServiceLinesColor = System.Drawing.SystemColors.ButtonFace;
-            this.textBox_request_headers.Size = new System.Drawing.Size(504, 524);
-            this.textBox_request_headers.TabIndex = 0;
-            this.textBox_request_headers.WordWrap = true;
-            this.textBox_request_headers.WordWrapIndent = 1;
-            this.textBox_request_headers.Zoom = 100;
-            this.textBox_request_headers.TextChanged += new System.EventHandler<FastColoredTextBoxNS.TextChangedEventArgs>(this.TextBox_request_headers_TextChanged);
+            textBox_request_headers.AutoCompleteBracketsList = new char[]
+    {
+    '(',
+    ')',
+    '{',
+    '}',
+    '[',
+    ']',
+    '"',
+    '"',
+    '\'',
+    '\''
+    };
+            autocompleteMenu1.SetAutocompleteMenu(textBox_request_headers, null);
+            textBox_request_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>.+)\r\n";
+            textBox_request_headers.AutoScrollMinSize = new Size(0, 22);
+            textBox_request_headers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            textBox_request_headers.BackBrush = null;
+            textBox_request_headers.CharHeight = 17;
+            textBox_request_headers.CharWidth = 8;
+            textBox_request_headers.CommentPrefix = "--";
+            textBox_request_headers.CurrentLineColor = Color.Gainsboro;
+            textBox_request_headers.Cursor = Cursors.IBeam;
+            textBox_request_headers.DefaultMarkerSize = 8;
+            textBox_request_headers.DisabledColor = Color.FromArgb(100, 180, 180, 180);
+            textBox_request_headers.Dock = DockStyle.Fill;
+            textBox_request_headers.Font = new Font("Consolas", 9F);
+            textBox_request_headers.HighlightFoldingIndicator = false;
+            textBox_request_headers.Hotkeys = resources.GetString("textBox_request_headers.Hotkeys");
+            textBox_request_headers.IsReplaceMode = false;
+            textBox_request_headers.LeftBracket = '(';
+            textBox_request_headers.LeftBracket2 = '{';
+            textBox_request_headers.LineNumberColor = SystemColors.ButtonShadow;
+            textBox_request_headers.Location = new Point(3, 3);
+            textBox_request_headers.Margin = new Padding(4);
+            textBox_request_headers.Name = "textBox_request_headers";
+            textBox_request_headers.Paddings = new Padding(0, 5, 0, 0);
+            textBox_request_headers.RightBracket = ')';
+            textBox_request_headers.RightBracket2 = '}';
+            textBox_request_headers.SelectionColor = Color.FromArgb(60, 255, 140, 0);
+            textBox_request_headers.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_request_headers.ServiceColors");
+            textBox_request_headers.ServiceLinesColor = SystemColors.ButtonFace;
+            textBox_request_headers.Size = new Size(1311, 465);
+            textBox_request_headers.TabIndex = 0;
+            textBox_request_headers.WordWrap = true;
+            textBox_request_headers.WordWrapIndent = 1;
+            textBox_request_headers.Zoom = 100;
+            textBox_request_headers.TextChanged += TextBox_request_headers_TextChanged;
             // 
             // textBox_request_body
             // 
-            this.textBox_request_body.AutoCompleteBracketsList = new char[] {
-        '(',
-        ')',
-        '{',
-        '}',
-        '[',
-        ']',
-        '\"',
-        '\"',
-        '\'',
-        '\''};
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_request_body, null);
-            this.textBox_request_body.AutoIndentCharsPatterns = "^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;=]+);\r\n^\\s*(case|default)\\s*[^:]*" +
-    "(?<range>:)\\s*(?<range>[^;]+);";
-            this.textBox_request_body.AutoScrollMinSize = new System.Drawing.Size(2, 22);
-            this.textBox_request_body.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.textBox_request_body.BackBrush = null;
-            this.textBox_request_body.CharHeight = 17;
-            this.textBox_request_body.CharWidth = 8;
-            this.textBox_request_body.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.textBox_request_body.DefaultMarkerSize = 8;
-            this.textBox_request_body.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.textBox_request_body.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_request_body.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.textBox_request_body.HighlightFoldingIndicator = false;
-            this.textBox_request_body.IsReplaceMode = false;
-            this.textBox_request_body.LeftBracket = '(';
-            this.textBox_request_body.LeftBracket2 = '{';
-            this.textBox_request_body.LineNumberColor = System.Drawing.SystemColors.ButtonShadow;
-            this.textBox_request_body.Location = new System.Drawing.Point(0, 0);
-            this.textBox_request_body.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_request_body.Name = "textBox_request_body";
-            this.textBox_request_body.Paddings = new System.Windows.Forms.Padding(0, 5, 0, 0);
-            this.textBox_request_body.RightBracket = ')';
-            this.textBox_request_body.RightBracket2 = '}';
-            this.textBox_request_body.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(255)))), ((int)(((byte)(140)))), ((int)(((byte)(0)))));
-            this.textBox_request_body.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("textBox_request_body.ServiceColors")));
-            this.textBox_request_body.ServiceLinesColor = System.Drawing.SystemColors.ButtonFace;
-            this.textBox_request_body.Size = new System.Drawing.Size(817, 524);
-            this.textBox_request_body.TabIndex = 3;
-            this.textBox_request_body.Zoom = 100;
+            textBox_request_body.AutoCompleteBracketsList = new char[]
+    {
+    '(',
+    ')',
+    '{',
+    '}',
+    '[',
+    ']',
+    '"',
+    '"',
+    '\'',
+    '\''
+    };
+            autocompleteMenu1.SetAutocompleteMenu(textBox_request_body, null);
+            textBox_request_body.AutoIndentCharsPatterns = "^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;=]+);\r\n^\\s*(case|default)\\s*[^:]*(?<range>:)\\s*(?<range>[^;]+);";
+            textBox_request_body.AutoScrollMinSize = new Size(0, 22);
+            textBox_request_body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            textBox_request_body.BackBrush = null;
+            textBox_request_body.CharHeight = 17;
+            textBox_request_body.CharWidth = 8;
+            textBox_request_body.Cursor = Cursors.IBeam;
+            textBox_request_body.DefaultMarkerSize = 8;
+            textBox_request_body.DisabledColor = Color.FromArgb(100, 180, 180, 180);
+            textBox_request_body.Dock = DockStyle.Fill;
+            textBox_request_body.Font = new Font("Consolas", 9F);
+            textBox_request_body.HighlightFoldingIndicator = false;
+            textBox_request_body.Hotkeys = resources.GetString("textBox_request_body.Hotkeys");
+            textBox_request_body.IsReplaceMode = false;
+            textBox_request_body.LeftBracket = '(';
+            textBox_request_body.LeftBracket2 = '{';
+            textBox_request_body.LineNumberColor = SystemColors.ButtonShadow;
+            textBox_request_body.Location = new Point(3, 3);
+            textBox_request_body.Margin = new Padding(4);
+            textBox_request_body.Name = "textBox_request_body";
+            textBox_request_body.Paddings = new Padding(0, 5, 0, 0);
+            textBox_request_body.RightBracket = ')';
+            textBox_request_body.RightBracket2 = '}';
+            textBox_request_body.SelectionColor = Color.FromArgb(60, 255, 140, 0);
+            textBox_request_body.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_request_body.ServiceColors");
+            textBox_request_body.ServiceLinesColor = SystemColors.ButtonFace;
+            textBox_request_body.Size = new Size(1311, 465);
+            textBox_request_body.TabIndex = 3;
+            textBox_request_body.WordWrap = true;
+            textBox_request_body.WordWrapIndent = 1;
+            textBox_request_body.Zoom = 100;
             // 
-            // statusStrip_response_stats
+            // splitContainer6_main_right
             // 
-            this.statusStrip_response_stats.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.statusStrip_response_stats.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripDropDownButton1,
-            this.toolStripDropDownButton_response_stats_certificate,
-            this.toolStripStatusLabel_response_stats_http_version,
-            this.toolStripStatusLabel_response_stats_datetime,
-            this.toolStripStatusLabel_response_stats_response_time,
-            this.toolStripStatusLabel_response_stats_certificate});
-            this.statusStrip_response_stats.Location = new System.Drawing.Point(0, 910);
-            this.statusStrip_response_stats.Name = "statusStrip_response_stats";
-            this.statusStrip_response_stats.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.statusStrip_response_stats.Size = new System.Drawing.Size(1325, 26);
-            this.statusStrip_response_stats.TabIndex = 5;
-            this.statusStrip_response_stats.Text = "statusStrip1";
+            splitContainer6_main_right.Dock = DockStyle.Fill;
+            splitContainer6_main_right.FixedPanel = FixedPanel.Panel1;
+            splitContainer6_main_right.IsSplitterFixed = true;
+            splitContainer6_main_right.Location = new Point(0, 0);
+            splitContainer6_main_right.Margin = new Padding(0);
+            splitContainer6_main_right.Name = "splitContainer6_main_right";
+            splitContainer6_main_right.Orientation = Orientation.Horizontal;
             // 
-            // toolStripDropDownButton1
+            // splitContainer6_main_right.Panel1
             // 
-            this.toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.copyToToolStripMenuItem});
-            this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
-            this.toolStripDropDownButton1.Size = new System.Drawing.Size(66, 24);
-            this.toolStripDropDownButton1.Text = "Profile";
+            splitContainer6_main_right.Panel1.Controls.Add(label_group);
+            splitContainer6_main_right.Panel1.Controls.Add(button_saveGroup);
+            splitContainer6_main_right.Panel1.Controls.Add(label_displayed_Id);
+            splitContainer6_main_right.Panel1.Controls.Add(comboBox_group);
+            splitContainer6_main_right.Panel1.Controls.Add(button_request_send);
+            splitContainer6_main_right.Panel1.Controls.Add(textBox_request_url);
+            splitContainer6_main_right.Panel1.Controls.Add(comboBox_certificates);
+            splitContainer6_main_right.Panel1.Controls.Add(comboBox_http_method);
+            splitContainer6_main_right.Panel1MinSize = 78;
             // 
-            // copyToToolStripMenuItem
+            // splitContainer6_main_right.Panel2
             // 
-            this.copyToToolStripMenuItem.Name = "copyToToolStripMenuItem";
-            this.copyToToolStripMenuItem.Size = new System.Drawing.Size(144, 26);
-            this.copyToToolStripMenuItem.Text = "Copy to";
-            this.copyToToolStripMenuItem.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.CopyToToolStripMenuItem_DropDownItemClicked);
+            splitContainer6_main_right.Panel2.Controls.Add(splitContainer5_reqres);
+            splitContainer6_main_right.Size = new Size(1325, 1393);
+            splitContainer6_main_right.SplitterDistance = 78;
+            splitContainer6_main_right.SplitterWidth = 1;
+            splitContainer6_main_right.TabIndex = 8;
             // 
-            // toolStripDropDownButton_response_stats_certificate
+            // label_group
             // 
-            this.toolStripDropDownButton_response_stats_certificate.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripDropDownButton_response_stats_certificate.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton_response_stats_certificate.Image")));
-            this.toolStripDropDownButton_response_stats_certificate.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripDropDownButton_response_stats_certificate.Name = "toolStripDropDownButton_response_stats_certificate";
-            this.toolStripDropDownButton_response_stats_certificate.Size = new System.Drawing.Size(134, 24);
-            this.toolStripDropDownButton_response_stats_certificate.Text = "Server certificate";
+            label_group.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            label_group.AutoSize = true;
+            label_group.Font = new Font("Segoe UI", 7.8F);
+            label_group.Location = new Point(97, 44);
+            label_group.Margin = new Padding(4, 0, 4, 0);
+            label_group.Name = "label_group";
+            label_group.Size = new Size(48, 17);
+            label_group.TabIndex = 12;
+            label_group.Text = "Group:";
             // 
-            // toolStripStatusLabel_response_stats_http_version
+            // button_saveGroup
             // 
-            this.toolStripStatusLabel_response_stats_http_version.Name = "toolStripStatusLabel_response_stats_http_version";
-            this.toolStripStatusLabel_response_stats_http_version.Size = new System.Drawing.Size(0, 20);
+            button_saveGroup.AutoSize = true;
+            button_saveGroup.Image = (Image)resources.GetObject("button_saveGroup.Image");
+            button_saveGroup.Location = new Point(283, 38);
+            button_saveGroup.Name = "button_saveGroup";
+            button_saveGroup.Size = new Size(30, 28);
+            button_saveGroup.TabIndex = 11;
+            button_saveGroup.Click += Button_saveGroup_Click;
             // 
-            // toolStripStatusLabel_response_stats_datetime
+            // label_displayed_Id
             // 
-            this.toolStripStatusLabel_response_stats_datetime.Name = "toolStripStatusLabel_response_stats_datetime";
-            this.toolStripStatusLabel_response_stats_datetime.Size = new System.Drawing.Size(0, 20);
+            label_displayed_Id.Location = new Point(929, 50);
+            label_displayed_Id.Margin = new Padding(2, 0, 2, 0);
+            label_displayed_Id.Name = "label_displayed_Id";
+            label_displayed_Id.Size = new Size(19, 21);
+            label_displayed_Id.TabIndex = 10;
+            label_displayed_Id.Visible = false;
             // 
-            // toolStripStatusLabel_response_stats_response_time
+            // comboBox_group
             // 
-            this.toolStripStatusLabel_response_stats_response_time.Name = "toolStripStatusLabel_response_stats_response_time";
-            this.toolStripStatusLabel_response_stats_response_time.Size = new System.Drawing.Size(0, 20);
+            comboBox_group.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            comboBox_group.FlatStyle = FlatStyle.Flat;
+            comboBox_group.Font = new Font("Segoe UI", 8F);
+            comboBox_group.FormattingEnabled = true;
+            comboBox_group.Location = new Point(148, 40);
+            comboBox_group.Margin = new Padding(4);
+            comboBox_group.Name = "comboBox_group";
+            comboBox_group.Size = new Size(130, 25);
+            comboBox_group.TabIndex = 9;
             // 
-            // toolStripStatusLabel_response_stats_certificate
+            // textBox_request_url
             // 
-            this.toolStripStatusLabel_response_stats_certificate.BackColor = System.Drawing.Color.IndianRed;
-            this.toolStripStatusLabel_response_stats_certificate.Name = "toolStripStatusLabel_response_stats_certificate";
-            this.toolStripStatusLabel_response_stats_certificate.Size = new System.Drawing.Size(0, 20);
+            textBox_request_url.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBox_request_url.AutoCompleteBracketsList = new char[]
+    {
+    '(',
+    ')',
+    '{',
+    '}',
+    '[',
+    ']',
+    '"',
+    '"',
+    '\'',
+    '\''
+    };
+            autocompleteMenu1.SetAutocompleteMenu(textBox_request_url, autocompleteMenu1);
+            textBox_request_url.AutoIndentCharsPatterns = "";
+            textBox_request_url.AutoScrollMinSize = new Size(6, 21);
+            textBox_request_url.BackBrush = null;
+            textBox_request_url.CharHeight = 17;
+            textBox_request_url.CharWidth = 8;
+            textBox_request_url.CommentPrefix = null;
+            textBox_request_url.Cursor = Cursors.IBeam;
+            textBox_request_url.DefaultMarkerSize = 8;
+            textBox_request_url.DisabledColor = Color.FromArgb(100, 180, 180, 180);
+            textBox_request_url.Font = new Font("Consolas", 9F);
+            textBox_request_url.HighlightFoldingIndicator = false;
+            textBox_request_url.HighlightingRangeType = FastColoredTextBoxNS.HighlightingRangeType.AllTextRange;
+            textBox_request_url.Hotkeys = resources.GetString("textBox_request_url.Hotkeys");
+            textBox_request_url.IsReplaceMode = false;
+            textBox_request_url.LeftBracket = '<';
+            textBox_request_url.LeftBracket2 = '(';
+            textBox_request_url.Location = new Point(4, 5);
+            textBox_request_url.Margin = new Padding(4);
+            textBox_request_url.Multiline = false;
+            textBox_request_url.Name = "textBox_request_url";
+            textBox_request_url.Paddings = new Padding(4, 4, 0, 0);
+            textBox_request_url.RightBracket = '>';
+            textBox_request_url.RightBracket2 = ')';
+            textBox_request_url.SelectionColor = Color.FromArgb(60, 255, 140, 0);
+            textBox_request_url.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_request_url.ServiceColors");
+            textBox_request_url.ShowLineNumbers = false;
+            textBox_request_url.ShowScrollBars = false;
+            textBox_request_url.Size = new Size(1317, 26);
+            textBox_request_url.TabIndex = 4;
+            textBox_request_url.Zoom = 100;
+            textBox_request_url.TextChanged += TextBox_request_url_TextChanged;
             // 
-            // splitContainer3
+            // comboBox_certificates
             // 
-            this.splitContainer3.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer3.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
-            this.splitContainer3.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer3.Margin = new System.Windows.Forms.Padding(2);
-            this.splitContainer3.Name = "splitContainer3";
+            comboBox_certificates.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            comboBox_certificates.FlatStyle = FlatStyle.Flat;
+            comboBox_certificates.Font = new Font("Segoe UI", 8F);
+            comboBox_certificates.FormattingEnabled = true;
+            comboBox_certificates.Location = new Point(331, 40);
+            comboBox_certificates.Margin = new Padding(4);
+            comboBox_certificates.Name = "comboBox_certificates";
+            comboBox_certificates.Size = new Size(267, 25);
+            comboBox_certificates.TabIndex = 2;
             // 
-            // splitContainer3.Panel1
+            // comboBox_http_method
             // 
-            this.splitContainer3.Panel1.Controls.Add(this.textBox_response_headers);
+            comboBox_http_method.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            comboBox_http_method.BackColor = SystemColors.ButtonHighlight;
+            comboBox_http_method.FlatStyle = FlatStyle.Flat;
+            comboBox_http_method.Font = new Font("Segoe UI", 7.8F);
+            comboBox_http_method.FormattingEnabled = true;
+            comboBox_http_method.Items.AddRange(new object[] { "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "TRACE" });
+            comboBox_http_method.Location = new Point(4, 40);
+            comboBox_http_method.Margin = new Padding(4);
+            comboBox_http_method.Name = "comboBox_http_method";
+            comboBox_http_method.Size = new Size(78, 25);
+            comboBox_http_method.TabIndex = 1;
+            comboBox_http_method.Text = "GET";
             // 
-            // splitContainer3.Panel2
+            // splitContainer5_reqres
             // 
-            this.splitContainer3.Panel2.Controls.Add(this.textBox_response_body);
-            this.splitContainer3.Size = new System.Drawing.Size(1325, 936);
-            this.splitContainer3.SplitterDistance = 507;
-            this.splitContainer3.TabIndex = 5;
+            splitContainer5_reqres.Dock = DockStyle.Fill;
+            splitContainer5_reqres.FixedPanel = FixedPanel.Panel1;
+            splitContainer5_reqres.Location = new Point(0, 0);
+            splitContainer5_reqres.Margin = new Padding(2);
+            splitContainer5_reqres.Name = "splitContainer5_reqres";
+            splitContainer5_reqres.Orientation = Orientation.Horizontal;
             // 
-            // textBox_response_headers
+            // splitContainer5_reqres.Panel1
             // 
-            this.textBox_response_headers.AutoCompleteBracketsList = new char[] {
-        '(',
-        ')',
-        '{',
-        '}',
-        '[',
-        ']',
-        '\"',
-        '\"',
-        '\'',
-        '\''};
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_response_headers, null);
-            this.textBox_response_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
-            this.textBox_response_headers.AutoScrollMinSize = new System.Drawing.Size(0, 22);
-            this.textBox_response_headers.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.textBox_response_headers.BackBrush = null;
-            this.textBox_response_headers.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.textBox_response_headers.CharHeight = 17;
-            this.textBox_response_headers.CharWidth = 8;
-            this.textBox_response_headers.CurrentLineColor = System.Drawing.Color.Gainsboro;
-            this.textBox_response_headers.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.textBox_response_headers.DefaultMarkerSize = 8;
-            this.textBox_response_headers.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.textBox_response_headers.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_response_headers.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.textBox_response_headers.HighlightFoldingIndicator = false;
-            this.textBox_response_headers.IsReplaceMode = false;
-            this.textBox_response_headers.LeftBracket = '(';
-            this.textBox_response_headers.LeftBracket2 = '{';
-            this.textBox_response_headers.LineNumberColor = System.Drawing.SystemColors.ButtonShadow;
-            this.textBox_response_headers.Location = new System.Drawing.Point(0, 0);
-            this.textBox_response_headers.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_response_headers.Name = "textBox_response_headers";
-            this.textBox_response_headers.Paddings = new System.Windows.Forms.Padding(0, 5, 0, 0);
-            this.textBox_response_headers.ReadOnly = true;
-            this.textBox_response_headers.RightBracket = ')';
-            this.textBox_response_headers.RightBracket2 = '}';
-            this.textBox_response_headers.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(255)))), ((int)(((byte)(140)))), ((int)(((byte)(0)))));
-            this.textBox_response_headers.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("textBox_response_headers.ServiceColors")));
-            this.textBox_response_headers.ServiceLinesColor = System.Drawing.SystemColors.ButtonFace;
-            this.textBox_response_headers.Size = new System.Drawing.Size(507, 936);
-            this.textBox_response_headers.TabIndex = 3;
-            this.textBox_response_headers.WordWrap = true;
-            this.textBox_response_headers.WordWrapIndent = 1;
-            this.textBox_response_headers.Zoom = 100;
-            this.textBox_response_headers.TextChanged += new System.EventHandler<FastColoredTextBoxNS.TextChangedEventArgs>(this.TextBox_response_headers_TextChanged);
-            this.textBox_response_headers.MouseDown += new System.Windows.Forms.MouseEventHandler(this.TextBox_response_headers_MouseDown);
-            this.textBox_response_headers.MouseMove += new System.Windows.Forms.MouseEventHandler(this.TextBox_response_headers_MouseMove);
+            splitContainer5_reqres.Panel1.Controls.Add(tabControl1);
+            // 
+            // splitContainer5_reqres.Panel2
+            // 
+            splitContainer5_reqres.Panel2.Controls.Add(tabControl_response);
+            splitContainer5_reqres.Panel2.Controls.Add(statusStrip_response_stats);
+            splitContainer5_reqres.Size = new Size(1325, 1314);
+            splitContainer5_reqres.SplitterDistance = 504;
+            splitContainer5_reqres.TabIndex = 7;
+            // 
+            // tabControl1
+            // 
+            tabControl1.Controls.Add(tabPage_request_body);
+            tabControl1.Controls.Add(tabPage_request_header);
+            tabControl1.Dock = DockStyle.Fill;
+            tabControl1.Location = new Point(0, 0);
+            tabControl1.Margin = new Padding(1);
+            tabControl1.Name = "tabControl1";
+            tabControl1.Padding = new Point(30, 3);
+            tabControl1.SelectedIndex = 0;
+            tabControl1.Size = new Size(1325, 504);
+            tabControl1.TabIndex = 5;
+            // 
+            // tabPage_request_body
+            // 
+            tabPage_request_body.Controls.Add(textBox_request_body);
+            tabPage_request_body.Location = new Point(4, 29);
+            tabPage_request_body.Name = "tabPage_request_body";
+            tabPage_request_body.Padding = new Padding(3);
+            tabPage_request_body.Size = new Size(1317, 471);
+            tabPage_request_body.TabIndex = 0;
+            tabPage_request_body.Text = "Request body";
+            tabPage_request_body.UseVisualStyleBackColor = true;
+            // 
+            // tabPage_request_header
+            // 
+            tabPage_request_header.Controls.Add(textBox_request_headers);
+            tabPage_request_header.Location = new Point(4, 29);
+            tabPage_request_header.Name = "tabPage_request_header";
+            tabPage_request_header.Padding = new Padding(3);
+            tabPage_request_header.Size = new Size(1317, 471);
+            tabPage_request_header.TabIndex = 1;
+            tabPage_request_header.Text = "Request header";
+            tabPage_request_header.UseVisualStyleBackColor = true;
+            // 
+            // tabControl_response
+            // 
+            tabControl_response.Controls.Add(tabPage_response_body);
+            tabControl_response.Controls.Add(tabPage_response_headers);
+            tabControl_response.Controls.Add(tabPage_statistics_information);
+            tabControl_response.Dock = DockStyle.Fill;
+            tabControl_response.Location = new Point(0, 0);
+            tabControl_response.Margin = new Padding(1);
+            tabControl_response.Multiline = true;
+            tabControl_response.Name = "tabControl_response";
+            tabControl_response.Padding = new Point(30, 3);
+            tabControl_response.SelectedIndex = 0;
+            tabControl_response.Size = new Size(1325, 776);
+            tabControl_response.TabIndex = 4;
+            // 
+            // tabPage_response_body
+            // 
+            tabPage_response_body.BackColor = SystemColors.Control;
+            tabPage_response_body.BackgroundImageLayout = ImageLayout.None;
+            tabPage_response_body.Controls.Add(textBox_response_body);
+            tabPage_response_body.Location = new Point(4, 29);
+            tabPage_response_body.Margin = new Padding(0);
+            tabPage_response_body.Name = "tabPage_response_body";
+            tabPage_response_body.Padding = new Padding(3);
+            tabPage_response_body.Size = new Size(1317, 743);
+            tabPage_response_body.TabIndex = 0;
+            tabPage_response_body.Text = "Response body";
             // 
             // textBox_response_body
             // 
-            this.textBox_response_body.AutoCompleteBracketsList = new char[] {
-        '(',
-        ')',
-        '{',
-        '}',
-        '[',
-        ']',
-        '\"',
-        '\"',
-        '\'',
-        '\''};
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_response_body, null);
-            this.textBox_response_body.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
-            this.textBox_response_body.AutoScrollMinSize = new System.Drawing.Size(2, 22);
-            this.textBox_response_body.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.textBox_response_body.BackBrush = null;
-            this.textBox_response_body.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.textBox_response_body.CharHeight = 17;
-            this.textBox_response_body.CharWidth = 8;
-            this.textBox_response_body.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.textBox_response_body.DefaultMarkerSize = 8;
-            this.textBox_response_body.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.textBox_response_body.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_response_body.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.textBox_response_body.HighlightFoldingIndicator = false;
-            this.textBox_response_body.IsReplaceMode = false;
-            this.textBox_response_body.LeftBracket = '(';
-            this.textBox_response_body.LeftBracket2 = '{';
-            this.textBox_response_body.LineNumberColor = System.Drawing.SystemColors.ButtonShadow;
-            this.textBox_response_body.Location = new System.Drawing.Point(0, 0);
-            this.textBox_response_body.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_response_body.Name = "textBox_response_body";
-            this.textBox_response_body.Paddings = new System.Windows.Forms.Padding(0, 5, 0, 0);
-            this.textBox_response_body.ReadOnly = true;
-            this.textBox_response_body.RightBracket = ')';
-            this.textBox_response_body.RightBracket2 = ')';
-            this.textBox_response_body.SelectionColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(255)))), ((int)(((byte)(140)))), ((int)(((byte)(0)))));
-            this.textBox_response_body.ServiceColors = ((FastColoredTextBoxNS.ServiceColors)(resources.GetObject("textBox_response_body.ServiceColors")));
-            this.textBox_response_body.ServiceLinesColor = System.Drawing.SystemColors.ButtonFace;
-            this.textBox_response_body.Size = new System.Drawing.Size(814, 936);
-            this.textBox_response_body.TabIndex = 2;
-            this.textBox_response_body.Zoom = 100;
+            textBox_response_body.AutoCompleteBracketsList = new char[]
+    {
+    '(',
+    ')',
+    '{',
+    '}',
+    '[',
+    ']',
+    '"',
+    '"',
+    '\'',
+    '\''
+    };
+            autocompleteMenu1.SetAutocompleteMenu(textBox_response_body, null);
+            textBox_response_body.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
+            textBox_response_body.AutoScrollMinSize = new Size(0, 23);
+            textBox_response_body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            textBox_response_body.BackBrush = null;
+            textBox_response_body.BackColor = Color.WhiteSmoke;
+            textBox_response_body.CharHeight = 18;
+            textBox_response_body.CharWidth = 10;
+            textBox_response_body.Cursor = Cursors.IBeam;
+            textBox_response_body.DefaultMarkerSize = 8;
+            textBox_response_body.DisabledColor = Color.FromArgb(100, 180, 180, 180);
+            textBox_response_body.Dock = DockStyle.Fill;
+            textBox_response_body.HighlightFoldingIndicator = false;
+            textBox_response_body.Hotkeys = resources.GetString("textBox_response_body.Hotkeys");
+            textBox_response_body.IsReplaceMode = false;
+            textBox_response_body.LeftBracket = '(';
+            textBox_response_body.LeftBracket2 = '{';
+            textBox_response_body.LineNumberColor = SystemColors.ButtonShadow;
+            textBox_response_body.Location = new Point(3, 3);
+            textBox_response_body.Margin = new Padding(4);
+            textBox_response_body.Name = "textBox_response_body";
+            textBox_response_body.Paddings = new Padding(0, 5, 0, 0);
+            textBox_response_body.ReadOnly = true;
+            textBox_response_body.RightBracket = ')';
+            textBox_response_body.RightBracket2 = ')';
+            textBox_response_body.SelectionColor = Color.FromArgb(60, 255, 140, 0);
+            textBox_response_body.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_response_body.ServiceColors");
+            textBox_response_body.ServiceLinesColor = SystemColors.ButtonFace;
+            textBox_response_body.Size = new Size(1311, 737);
+            textBox_response_body.TabIndex = 2;
+            textBox_response_body.WordWrap = true;
+            textBox_response_body.WordWrapIndent = 1;
+            textBox_response_body.Zoom = 100;
+            // 
+            // tabPage_response_headers
+            // 
+            tabPage_response_headers.BackgroundImageLayout = ImageLayout.None;
+            tabPage_response_headers.Controls.Add(textBox_response_headers);
+            tabPage_response_headers.Location = new Point(4, 29);
+            tabPage_response_headers.Margin = new Padding(0);
+            tabPage_response_headers.Name = "tabPage_response_headers";
+            tabPage_response_headers.Padding = new Padding(3);
+            tabPage_response_headers.Size = new Size(1317, 743);
+            tabPage_response_headers.TabIndex = 1;
+            tabPage_response_headers.Text = "Response headers";
+            // 
+            // textBox_response_headers
+            // 
+            textBox_response_headers.AutoCompleteBracketsList = new char[]
+    {
+    '(',
+    ')',
+    '{',
+    '}',
+    '[',
+    ']',
+    '"',
+    '"',
+    '\'',
+    '\''
+    };
+            autocompleteMenu1.SetAutocompleteMenu(textBox_response_headers, null);
+            textBox_response_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
+            textBox_response_headers.AutoScrollMinSize = new Size(0, 22);
+            textBox_response_headers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            textBox_response_headers.BackBrush = null;
+            textBox_response_headers.BackColor = Color.WhiteSmoke;
+            textBox_response_headers.CharHeight = 17;
+            textBox_response_headers.CharWidth = 8;
+            textBox_response_headers.CurrentLineColor = Color.Gainsboro;
+            textBox_response_headers.Cursor = Cursors.IBeam;
+            textBox_response_headers.DefaultMarkerSize = 8;
+            textBox_response_headers.DisabledColor = Color.FromArgb(100, 180, 180, 180);
+            textBox_response_headers.Dock = DockStyle.Fill;
+            textBox_response_headers.Font = new Font("Consolas", 9F);
+            textBox_response_headers.HighlightFoldingIndicator = false;
+            textBox_response_headers.Hotkeys = resources.GetString("textBox_response_headers.Hotkeys");
+            textBox_response_headers.IsReplaceMode = false;
+            textBox_response_headers.LeftBracket = '(';
+            textBox_response_headers.LeftBracket2 = '{';
+            textBox_response_headers.LineNumberColor = SystemColors.ButtonShadow;
+            textBox_response_headers.Location = new Point(3, 3);
+            textBox_response_headers.Margin = new Padding(4);
+            textBox_response_headers.Name = "textBox_response_headers";
+            textBox_response_headers.Paddings = new Padding(0, 5, 0, 0);
+            textBox_response_headers.ReadOnly = true;
+            textBox_response_headers.RightBracket = ')';
+            textBox_response_headers.RightBracket2 = '}';
+            textBox_response_headers.SelectionColor = Color.FromArgb(60, 255, 140, 0);
+            textBox_response_headers.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_response_headers.ServiceColors");
+            textBox_response_headers.ServiceLinesColor = SystemColors.ButtonFace;
+            textBox_response_headers.Size = new Size(1311, 737);
+            textBox_response_headers.TabIndex = 3;
+            textBox_response_headers.WordWrap = true;
+            textBox_response_headers.WordWrapIndent = 1;
+            textBox_response_headers.Zoom = 100;
+            textBox_response_headers.TextChanged += TextBox_response_headers_TextChanged;
+            textBox_response_headers.MouseDown += TextBox_response_headers_MouseDown;
+            textBox_response_headers.MouseMove += TextBox_response_headers_MouseMove;
+            // 
+            // tabPage_statistics_information
+            // 
+            tabPage_statistics_information.Controls.Add(listView1);
+            tabPage_statistics_information.Location = new Point(4, 29);
+            tabPage_statistics_information.Name = "tabPage_statistics_information";
+            tabPage_statistics_information.Size = new Size(1317, 743);
+            tabPage_statistics_information.TabIndex = 2;
+            tabPage_statistics_information.Text = "Statistics";
+            tabPage_statistics_information.UseVisualStyleBackColor = true;
+            // 
+            // listView1
+            // 
+            listView1.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            listView1.Location = new Point(6, 18);
+            listView1.Name = "listView1";
+            listView1.Size = new Size(1302, 499);
+            listView1.TabIndex = 0;
+            listView1.UseCompatibleStateImageBehavior = false;
+            // 
+            // statusStrip_response_stats
+            // 
+            statusStrip_response_stats.ImageScalingSize = new Size(20, 20);
+            statusStrip_response_stats.Items.AddRange(new ToolStripItem[] { toolStripDropDownButton1, toolStripDropDownButton_text_utils, toolStripDropDownButton_request, toolStripDropDownButton_clearAll, toolStripDropDownButton_response_stats_certificate, toolStripStatusLabel_response_stats_http_version, toolStripStatusLabel_response_stats_datetime, toolStripStatusLabel_response_stats_response_time, toolStripStatusLabel_response_stats_certificate });
+            statusStrip_response_stats.Location = new Point(0, 776);
+            statusStrip_response_stats.Name = "statusStrip_response_stats";
+            statusStrip_response_stats.ShowItemToolTips = true;
+            statusStrip_response_stats.Size = new Size(1325, 30);
+            statusStrip_response_stats.TabIndex = 5;
+            statusStrip_response_stats.Text = "statusStrip1";
+            // 
+            // toolStripDropDownButton1
+            // 
+            toolStripDropDownButton1.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripDropDownButton1.DropDownItems.AddRange(new ToolStripItem[] { copyToToolStripMenuItem });
+            toolStripDropDownButton1.ImageTransparentColor = Color.Magenta;
+            toolStripDropDownButton1.Name = "toolStripDropDownButton1";
+            toolStripDropDownButton1.Size = new Size(66, 28);
+            toolStripDropDownButton1.Text = "Profile";
+            // 
+            // copyToToolStripMenuItem
+            // 
+            copyToToolStripMenuItem.Name = "copyToToolStripMenuItem";
+            copyToToolStripMenuItem.Size = new Size(144, 26);
+            copyToToolStripMenuItem.Text = "Copy to";
+            copyToToolStripMenuItem.DropDownItemClicked += CopyToToolStripMenuItem_DropDownItemClicked;
+            // 
+            // toolStripDropDownButton_text_utils
+            // 
+            toolStripDropDownButton_text_utils.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            toolStripDropDownButton_text_utils.Image = (Image)resources.GetObject("toolStripDropDownButton_text_utils.Image");
+            toolStripDropDownButton_text_utils.ImageScaling = ToolStripItemImageScaling.None;
+            toolStripDropDownButton_text_utils.ImageTransparentColor = Color.Magenta;
+            toolStripDropDownButton_text_utils.Name = "toolStripDropDownButton_text_utils";
+            toolStripDropDownButton_text_utils.Padding = new Padding(5, 0, 0, 0);
+            toolStripDropDownButton_text_utils.ShowDropDownArrow = false;
+            toolStripDropDownButton_text_utils.Size = new Size(25, 28);
+            toolStripDropDownButton_text_utils.Text = "toolStripDropDownButton2";
+            toolStripDropDownButton_text_utils.ToolTipText = "Text utilities";
+            toolStripDropDownButton_text_utils.Click += Button_text_utils_Click;
+            // 
+            // toolStripDropDownButton_request
+            // 
+            toolStripDropDownButton_request.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripDropDownButton_request.DropDownItems.AddRange(new ToolStripItem[] { httpVersionToolStripMenuItem, repeatToolStripMenuItem });
+            toolStripDropDownButton_request.Image = (Image)resources.GetObject("toolStripDropDownButton_request.Image");
+            toolStripDropDownButton_request.ImageTransparentColor = Color.Magenta;
+            toolStripDropDownButton_request.Name = "toolStripDropDownButton_request";
+            toolStripDropDownButton_request.Padding = new Padding(5, 0, 0, 0);
+            toolStripDropDownButton_request.Size = new Size(81, 28);
+            toolStripDropDownButton_request.Text = "Request";
+            // 
+            // httpVersionToolStripMenuItem
+            // 
+            httpVersionToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toolStripComboBox_http_version });
+            httpVersionToolStripMenuItem.Name = "httpVersionToolStripMenuItem";
+            httpVersionToolStripMenuItem.Size = new Size(179, 26);
+            httpVersionToolStripMenuItem.Text = "HTTP Version";
+            // 
+            // toolStripComboBox_http_version
+            // 
+            toolStripComboBox_http_version.Items.AddRange(new object[] { "HTTP 1.0", "HTTP 1.1", "HTTP 2.0" });
+            toolStripComboBox_http_version.Name = "toolStripComboBox_http_version";
+            toolStripComboBox_http_version.Size = new Size(121, 28);
+            toolStripComboBox_http_version.Text = "HTTP 1.1";
+            // 
+            // repeatToolStripMenuItem
+            // 
+            repeatToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toolStripTextBox_repeat });
+            repeatToolStripMenuItem.Name = "repeatToolStripMenuItem";
+            repeatToolStripMenuItem.Size = new Size(179, 26);
+            repeatToolStripMenuItem.Text = "Repeat";
+            // 
+            // toolStripTextBox_repeat
+            // 
+            toolStripTextBox_repeat.Name = "toolStripTextBox_repeat";
+            toolStripTextBox_repeat.Size = new Size(100, 27);
+            toolStripTextBox_repeat.Text = "1";
+            // 
+            // toolStripDropDownButton_clearAll
+            // 
+            toolStripDropDownButton_clearAll.AccessibleDescription = "Clear request and response forms";
+            toolStripDropDownButton_clearAll.DisplayStyle = ToolStripItemDisplayStyle.Image;
+            toolStripDropDownButton_clearAll.Image = (Image)resources.GetObject("toolStripDropDownButton_clearAll.Image");
+            toolStripDropDownButton_clearAll.ImageScaling = ToolStripItemImageScaling.None;
+            toolStripDropDownButton_clearAll.ImageTransparentColor = Color.Magenta;
+            toolStripDropDownButton_clearAll.Name = "toolStripDropDownButton_clearAll";
+            toolStripDropDownButton_clearAll.Padding = new Padding(5, 0, 0, 0);
+            toolStripDropDownButton_clearAll.ShowDropDownArrow = false;
+            toolStripDropDownButton_clearAll.Size = new Size(33, 28);
+            toolStripDropDownButton_clearAll.Text = "toolStripDropDownButton2";
+            toolStripDropDownButton_clearAll.ToolTipText = "Clear request and response forms";
+            toolStripDropDownButton_clearAll.Click += Button_clearAll_Click;
+            // 
+            // toolStripDropDownButton_response_stats_certificate
+            // 
+            toolStripDropDownButton_response_stats_certificate.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripDropDownButton_response_stats_certificate.Image = (Image)resources.GetObject("toolStripDropDownButton_response_stats_certificate.Image");
+            toolStripDropDownButton_response_stats_certificate.ImageTransparentColor = Color.Magenta;
+            toolStripDropDownButton_response_stats_certificate.Name = "toolStripDropDownButton_response_stats_certificate";
+            toolStripDropDownButton_response_stats_certificate.Size = new Size(134, 28);
+            toolStripDropDownButton_response_stats_certificate.Text = "Server certificate";
+            // 
+            // toolStripStatusLabel_response_stats_http_version
+            // 
+            toolStripStatusLabel_response_stats_http_version.Name = "toolStripStatusLabel_response_stats_http_version";
+            toolStripStatusLabel_response_stats_http_version.Size = new Size(0, 24);
+            // 
+            // toolStripStatusLabel_response_stats_datetime
+            // 
+            toolStripStatusLabel_response_stats_datetime.Name = "toolStripStatusLabel_response_stats_datetime";
+            toolStripStatusLabel_response_stats_datetime.Size = new Size(0, 24);
+            // 
+            // toolStripStatusLabel_response_stats_response_time
+            // 
+            toolStripStatusLabel_response_stats_response_time.Name = "toolStripStatusLabel_response_stats_response_time";
+            toolStripStatusLabel_response_stats_response_time.Size = new Size(0, 24);
+            // 
+            // toolStripStatusLabel_response_stats_certificate
+            // 
+            toolStripStatusLabel_response_stats_certificate.BackColor = Color.IndianRed;
+            toolStripStatusLabel_response_stats_certificate.Name = "toolStripStatusLabel_response_stats_certificate";
+            toolStripStatusLabel_response_stats_certificate.Size = new Size(0, 24);
             // 
             // dataGridView1
             // 
-            this.dataGridView1.AllowUserToAddRows = false;
-            this.dataGridView1.AllowUserToResizeRows = false;
-            this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCellsExceptHeader;
-            this.dataGridView1.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders;
-            this.dataGridView1.BackgroundColor = System.Drawing.SystemColors.ControlLight;
-            this.dataGridView1.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.dataGridView1.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.Single;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dataGridView1.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
-            this.dataGridView1.ColumnHeadersHeight = 29;
-            this.dataGridView1.ColumnHeadersVisible = false;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dataGridView1.DefaultCellStyle = dataGridViewCellStyle2;
-            this.dataGridView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView1.EnableHeadersVisualStyles = false;
-            this.dataGridView1.GridColor = System.Drawing.SystemColors.Control;
-            this.dataGridView1.Location = new System.Drawing.Point(0, 0);
-            this.dataGridView1.Margin = new System.Windows.Forms.Padding(2);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.RowHeadersVisible = false;
-            this.dataGridView1.RowHeadersWidth = 51;
-            this.dataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dataGridView1.Size = new System.Drawing.Size(644, 1487);
-            this.dataGridView1.TabIndex = 3;
-            this.dataGridView1.VirtualMode = true;
-            this.dataGridView1.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.DataGridView1_CellPainting);
-            this.dataGridView1.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridView1_CellValueChanged);
-            this.dataGridView1.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridView1_RowEnter);
-            this.dataGridView1.UserDeletingRow += new System.Windows.Forms.DataGridViewRowCancelEventHandler(this.DataGridView1_UserDeletingRow);
-            this.dataGridView1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.DataGridView1_KeyDown);
+            dataGridView1.AllowUserToAddRows = false;
+            dataGridView1.AllowUserToResizeRows = false;
+            dataGridViewCellStyle1.BackColor = Color.PaleGoldenrod;
+            dataGridView1.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridView1.BackgroundColor = SystemColors.Control;
+            dataGridView1.BorderStyle = BorderStyle.None;
+            dataGridView1.CellBorderStyle = DataGridViewCellBorderStyle.None;
+            dataGridView1.ColumnHeadersHeight = 29;
+            dataGridView1.ColumnHeadersVisible = false;
+            dataGridView1.ContextMenuStrip = contextMenuStrip1;
+            dataGridViewCellStyle2.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = SystemColors.Window;
+            dataGridViewCellStyle2.Font = new Font("Segoe UI Semibold", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            dataGridViewCellStyle2.ForeColor = SystemColors.ControlText;
+            dataGridViewCellStyle2.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = DataGridViewTriState.False;
+            dataGridView1.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridView1.Dock = DockStyle.Fill;
+            dataGridView1.Location = new Point(0, 0);
+            dataGridView1.Margin = new Padding(1);
+            dataGridView1.Name = "dataGridView1";
+            dataGridView1.RowHeadersVisible = false;
+            dataGridView1.RowHeadersWidth = 51;
+            dataGridView1.RowTemplate.Height = 25;
+            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView1.Size = new Size(644, 1323);
+            dataGridView1.TabIndex = 3;
+            dataGridView1.VirtualMode = true;
+            dataGridView1.CellPainting += DataGridView1_CellPainting;
+            dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
+            dataGridView1.RowContextMenuStripNeeded += dataGridView1_RowContextMenuStripNeeded;
+            dataGridView1.RowEnter += DataGridView1_RowEnter;
+            dataGridView1.UserDeletingRow += DataGridView1_UserDeletingRow;
+            dataGridView1.KeyDown += DataGridView1_KeyDown;
             // 
-            // splitContainer1
+            // contextMenuStrip1
             // 
-            this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer1.Location = new System.Drawing.Point(0, 0);
-            this.splitContainer1.Margin = new System.Windows.Forms.Padding(4);
-            this.splitContainer1.Name = "splitContainer1";
+            contextMenuStrip1.ImageScalingSize = new Size(20, 20);
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { copyToToolStripMenuItem1 });
+            contextMenuStrip1.MinimumSize = new Size(50, 50);
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.RenderMode = ToolStripRenderMode.Professional;
+            contextMenuStrip1.Size = new Size(131, 50);
+            contextMenuStrip1.Text = "Copy to";
             // 
-            // splitContainer1.Panel1
+            // copyToToolStripMenuItem1
             // 
-            this.splitContainer1.Panel1.Controls.Add(this.tabControl2);
+            copyToToolStripMenuItem1.Name = "copyToToolStripMenuItem1";
+            copyToToolStripMenuItem1.Size = new Size(130, 24);
+            copyToToolStripMenuItem1.Text = "Copy to";
+            copyToToolStripMenuItem1.DropDownItemClicked += copyToToolStripMenuItem1_DropDownItemClicked;
             // 
-            // splitContainer1.Panel2
+            // splitContainer1_main_form
             // 
-            this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
-            this.splitContainer1.Size = new System.Drawing.Size(1990, 1559);
-            this.splitContainer1.SplitterDistance = 660;
-            this.splitContainer1.SplitterWidth = 5;
-            this.splitContainer1.TabIndex = 4;
+            splitContainer1_main_form.Dock = DockStyle.Fill;
+            splitContainer1_main_form.FixedPanel = FixedPanel.Panel1;
+            splitContainer1_main_form.Location = new Point(0, 0);
+            splitContainer1_main_form.Margin = new Padding(4);
+            splitContainer1_main_form.Name = "splitContainer1_main_form";
+            // 
+            // splitContainer1_main_form.Panel1
+            // 
+            splitContainer1_main_form.Panel1.Controls.Add(tabControl2);
+            // 
+            // splitContainer1_main_form.Panel2
+            // 
+            splitContainer1_main_form.Panel2.Controls.Add(splitContainer6_main_right);
+            splitContainer1_main_form.Size = new Size(1990, 1393);
+            splitContainer1_main_form.SplitterDistance = 660;
+            splitContainer1_main_form.SplitterWidth = 5;
+            splitContainer1_main_form.TabIndex = 4;
             // 
             // tabControl2
             // 
-            this.tabControl2.Alignment = System.Windows.Forms.TabAlignment.Bottom;
-            this.tabControl2.Controls.Add(this.tabPage3);
-            this.tabControl2.Controls.Add(this.tabPage4);
-            this.tabControl2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tabControl2.Location = new System.Drawing.Point(0, 0);
-            this.tabControl2.Margin = new System.Windows.Forms.Padding(2);
-            this.tabControl2.Name = "tabControl2";
-            this.tabControl2.SelectedIndex = 0;
-            this.tabControl2.Size = new System.Drawing.Size(660, 1559);
-            this.tabControl2.SizeMode = System.Windows.Forms.TabSizeMode.Fixed;
-            this.tabControl2.TabIndex = 5;
-            this.tabControl2.SelectedIndexChanged += new System.EventHandler(this.TabControl2_SelectedIndexChanged);
+            tabControl2.Alignment = TabAlignment.Bottom;
+            tabControl2.Controls.Add(tabPage3);
+            tabControl2.Controls.Add(tabPage4);
+            tabControl2.Dock = DockStyle.Fill;
+            tabControl2.Location = new Point(0, 0);
+            tabControl2.Margin = new Padding(2);
+            tabControl2.Name = "tabControl2";
+            tabControl2.SelectedIndex = 0;
+            tabControl2.Size = new Size(660, 1393);
+            tabControl2.SizeMode = TabSizeMode.Fixed;
+            tabControl2.TabIndex = 5;
+            tabControl2.SelectedIndexChanged += TabControl2_SelectedIndexChanged;
             // 
             // tabPage3
             // 
-            this.tabPage3.Controls.Add(this.splitContainer4);
-            this.tabPage3.Location = new System.Drawing.Point(4, 4);
-            this.tabPage3.Margin = new System.Windows.Forms.Padding(4);
-            this.tabPage3.Name = "tabPage3";
-            this.tabPage3.Padding = new System.Windows.Forms.Padding(4);
-            this.tabPage3.Size = new System.Drawing.Size(652, 1526);
-            this.tabPage3.TabIndex = 0;
-            this.tabPage3.Text = "Sessions";
-            this.tabPage3.UseVisualStyleBackColor = true;
+            tabPage3.Controls.Add(splitContainer4);
+            tabPage3.Location = new Point(4, 4);
+            tabPage3.Margin = new Padding(4);
+            tabPage3.Name = "tabPage3";
+            tabPage3.Padding = new Padding(4);
+            tabPage3.Size = new Size(652, 1360);
+            tabPage3.TabIndex = 0;
+            tabPage3.Text = "Sessions";
+            tabPage3.UseVisualStyleBackColor = true;
             // 
             // splitContainer4
             // 
-            this.splitContainer4.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer4.Location = new System.Drawing.Point(4, 4);
-            this.splitContainer4.Name = "splitContainer4";
-            this.splitContainer4.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            splitContainer4.Dock = DockStyle.Fill;
+            splitContainer4.Location = new Point(4, 4);
+            splitContainer4.Name = "splitContainer4";
+            splitContainer4.Orientation = Orientation.Horizontal;
             // 
             // splitContainer4.Panel1
             // 
-            this.splitContainer4.Panel1.Controls.Add(this.textBox_filter);
-            this.splitContainer4.Panel1.Controls.Add(this.comboBox_filter_group);
+            splitContainer4.Panel1.Controls.Add(textBox_filter);
+            splitContainer4.Panel1.Controls.Add(comboBox_filter_group);
             // 
             // splitContainer4.Panel2
             // 
-            this.splitContainer4.Panel2.Controls.Add(this.dataGridView1);
-            this.splitContainer4.Size = new System.Drawing.Size(644, 1518);
-            this.splitContainer4.SplitterDistance = 27;
-            this.splitContainer4.TabIndex = 11;
+            splitContainer4.Panel2.Controls.Add(dataGridView1);
+            splitContainer4.Size = new Size(644, 1352);
+            splitContainer4.SplitterDistance = 25;
+            splitContainer4.TabIndex = 11;
             // 
             // textBox_filter
             // 
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_filter, null);
-            this.textBox_filter.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.textBox_filter.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_filter.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.textBox_filter.Location = new System.Drawing.Point(0, 0);
-            this.textBox_filter.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_filter.Name = "textBox_filter";
-            this.textBox_filter.PlaceholderText = "Filter";
-            this.textBox_filter.Size = new System.Drawing.Size(456, 25);
-            this.textBox_filter.TabIndex = 4;
-            this.textBox_filter.TextChanged += new System.EventHandler(this.TextBox_filter_TextChanged);
+            autocompleteMenu1.SetAutocompleteMenu(textBox_filter, null);
+            textBox_filter.BorderStyle = BorderStyle.FixedSingle;
+            textBox_filter.Dock = DockStyle.Fill;
+            textBox_filter.Font = new Font("Segoe UI", 8F);
+            textBox_filter.Location = new Point(0, 0);
+            textBox_filter.Margin = new Padding(4);
+            textBox_filter.Name = "textBox_filter";
+            textBox_filter.PlaceholderText = "Filter";
+            textBox_filter.Size = new Size(456, 25);
+            textBox_filter.TabIndex = 4;
+            textBox_filter.TextChanged += TextBox_filter_TextChanged;
             // 
             // comboBox_filter_group
             // 
-            this.comboBox_filter_group.Dock = System.Windows.Forms.DockStyle.Right;
-            this.comboBox_filter_group.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.comboBox_filter_group.FormattingEnabled = true;
-            this.comboBox_filter_group.ItemHeight = 17;
-            this.comboBox_filter_group.Location = new System.Drawing.Point(456, 0);
-            this.comboBox_filter_group.Margin = new System.Windows.Forms.Padding(5);
-            this.comboBox_filter_group.Name = "comboBox_filter_group";
-            this.comboBox_filter_group.Size = new System.Drawing.Size(188, 25);
-            this.comboBox_filter_group.TabIndex = 10;
-            this.comboBox_filter_group.SelectedIndexChanged += new System.EventHandler(this.ComboBox_filter_group_SelectedIndexChanged);
+            comboBox_filter_group.Dock = DockStyle.Right;
+            comboBox_filter_group.Font = new Font("Segoe UI", 8F);
+            comboBox_filter_group.FormattingEnabled = true;
+            comboBox_filter_group.ItemHeight = 17;
+            comboBox_filter_group.Location = new Point(456, 0);
+            comboBox_filter_group.Margin = new Padding(5);
+            comboBox_filter_group.Name = "comboBox_filter_group";
+            comboBox_filter_group.Size = new Size(188, 25);
+            comboBox_filter_group.TabIndex = 10;
+            comboBox_filter_group.SelectedIndexChanged += ComboBox_filter_group_SelectedIndexChanged;
             // 
             // tabPage4
             // 
-            this.tabPage4.Controls.Add(this.label7);
-            this.tabPage4.Controls.Add(this.comboBox_settings_profiles);
-            this.tabPage4.Controls.Add(this.groupBox1);
-            this.tabPage4.Location = new System.Drawing.Point(4, 4);
-            this.tabPage4.Margin = new System.Windows.Forms.Padding(4);
-            this.tabPage4.Name = "tabPage4";
-            this.tabPage4.Padding = new System.Windows.Forms.Padding(4);
-            this.tabPage4.Size = new System.Drawing.Size(652, 1526);
-            this.tabPage4.TabIndex = 1;
-            this.tabPage4.Text = "Settings";
-            this.tabPage4.UseVisualStyleBackColor = true;
+            tabPage4.Controls.Add(label7);
+            tabPage4.Controls.Add(comboBox_settings_profiles);
+            tabPage4.Controls.Add(groupBox1);
+            tabPage4.Location = new Point(4, 4);
+            tabPage4.Margin = new Padding(4);
+            tabPage4.Name = "tabPage4";
+            tabPage4.Padding = new Padding(4);
+            tabPage4.Size = new Size(652, 1360);
+            tabPage4.TabIndex = 1;
+            tabPage4.Text = "Settings";
+            tabPage4.UseVisualStyleBackColor = true;
             // 
             // label7
             // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(18, 24);
-            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(108, 20);
-            this.label7.TabIndex = 5;
-            this.label7.Text = "Current profile:";
+            label7.AutoSize = true;
+            label7.Location = new Point(18, 24);
+            label7.Margin = new Padding(4, 0, 4, 0);
+            label7.Name = "label7";
+            label7.Size = new Size(108, 20);
+            label7.TabIndex = 5;
+            label7.Text = "Current profile:";
             // 
             // comboBox_settings_profiles
             // 
-            this.comboBox_settings_profiles.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.comboBox_settings_profiles.FormattingEnabled = true;
-            this.comboBox_settings_profiles.Location = new System.Drawing.Point(138, 21);
-            this.comboBox_settings_profiles.Margin = new System.Windows.Forms.Padding(4);
-            this.comboBox_settings_profiles.Name = "comboBox_settings_profiles";
-            this.comboBox_settings_profiles.Size = new System.Drawing.Size(469, 28);
-            this.comboBox_settings_profiles.TabIndex = 4;
-            this.comboBox_settings_profiles.SelectedIndexChanged += new System.EventHandler(this.ComboBox_settings_profiles_SelectedIndexChanged);
+            comboBox_settings_profiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            comboBox_settings_profiles.FormattingEnabled = true;
+            comboBox_settings_profiles.Location = new Point(138, 21);
+            comboBox_settings_profiles.Margin = new Padding(4);
+            comboBox_settings_profiles.Name = "comboBox_settings_profiles";
+            comboBox_settings_profiles.Size = new Size(469, 28);
+            comboBox_settings_profiles.TabIndex = 4;
+            comboBox_settings_profiles.SelectedIndexChanged += ComboBox_settings_profiles_SelectedIndexChanged;
             // 
             // groupBox1
             // 
-            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBox1.Controls.Add(this.label9);
-            this.groupBox1.Controls.Add(this.textBox_profileName);
-            this.groupBox1.Controls.Add(this.button_settings_import);
-            this.groupBox1.Controls.Add(this.button_settings_export);
-            this.groupBox1.Controls.Add(this.button_settings_insert);
-            this.groupBox1.Controls.Add(this.button_settings_delete);
-            this.groupBox1.Controls.Add(this.button_settings_save);
-            this.groupBox1.Controls.Add(this.label3);
-            this.groupBox1.Controls.Add(this.textBox_cosmos_Endpoint);
-            this.groupBox1.Controls.Add(this.label2);
-            this.groupBox1.Location = new System.Drawing.Point(18, 90);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox1.Size = new System.Drawing.Size(616, 302);
-            this.groupBox1.TabIndex = 2;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Database profile settings";
+            groupBox1.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            groupBox1.Controls.Add(groupBox2);
+            groupBox1.Controls.Add(label9);
+            groupBox1.Controls.Add(textBox_profileName);
+            groupBox1.Controls.Add(button_settings_import);
+            groupBox1.Controls.Add(button_settings_export);
+            groupBox1.Controls.Add(button_settings_insert);
+            groupBox1.Controls.Add(button_settings_delete);
+            groupBox1.Controls.Add(button_settings_save);
+            groupBox1.Controls.Add(label3);
+            groupBox1.Controls.Add(textBox_cosmos_Endpoint);
+            groupBox1.Controls.Add(label2);
+            groupBox1.Location = new Point(18, 90);
+            groupBox1.Margin = new Padding(4);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Padding = new Padding(4);
+            groupBox1.Size = new Size(616, 744);
+            groupBox1.TabIndex = 2;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "Database profile settings";
+            // 
+            // groupBox2
+            // 
+            groupBox2.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            groupBox2.Controls.Add(button_blob_list);
+            groupBox2.Controls.Add(listBox_blob);
+            groupBox2.Controls.Add(textBox_blob_container);
+            groupBox2.Controls.Add(button_blob);
+            groupBox2.Controls.Add(label5);
+            groupBox2.Controls.Add(textBox_blob_storage_account);
+            groupBox2.Controls.Add(textBox_blob_sas_token);
+            groupBox2.Controls.Add(label1);
+            groupBox2.Controls.Add(label4);
+            groupBox2.Location = new Point(20, 188);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Size = new Size(569, 429);
+            groupBox2.TabIndex = 17;
+            groupBox2.TabStop = false;
+            groupBox2.Text = "Azure Blob Synchronization";
+            // 
+            // button_blob_list
+            // 
+            button_blob_list.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            button_blob_list.Location = new Point(426, 372);
+            button_blob_list.Margin = new Padding(4);
+            button_blob_list.Name = "button_blob_list";
+            button_blob_list.Size = new Size(124, 32);
+            button_blob_list.TabIndex = 17;
+            button_blob_list.Text = "List blobs";
+            button_blob_list.UseVisualStyleBackColor = true;
+            button_blob_list.Click += button_blob_list_Click;
+            // 
+            // listBox_blob
+            // 
+            listBox_blob.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            listBox_blob.BorderStyle = BorderStyle.FixedSingle;
+            listBox_blob.FormattingEnabled = true;
+            listBox_blob.Location = new Point(28, 167);
+            listBox_blob.Name = "listBox_blob";
+            listBox_blob.Size = new Size(522, 202);
+            listBox_blob.TabIndex = 8;
+            // 
+            // textBox_blob_container
+            // 
+            textBox_blob_container.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            autocompleteMenu1.SetAutocompleteMenu(textBox_blob_container, null);
+            textBox_blob_container.Location = new Point(166, 116);
+            textBox_blob_container.Margin = new Padding(4);
+            textBox_blob_container.Name = "textBox_blob_container";
+            textBox_blob_container.Size = new Size(384, 27);
+            textBox_blob_container.TabIndex = 13;
+            // 
+            // button_blob
+            // 
+            button_blob.Location = new Point(28, 372);
+            button_blob.Margin = new Padding(4);
+            button_blob.MinimumSize = new Size(230, 0);
+            button_blob.Name = "button_blob";
+            button_blob.Size = new Size(230, 32);
+            button_blob.TabIndex = 7;
+            button_blob.Text = "Sync local db with Azure blob";
+            button_blob.UseVisualStyleBackColor = true;
+            button_blob.Click += button_blob_Click;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(28, 49);
+            label5.Margin = new Padding(4, 0, 4, 0);
+            label5.Name = "label5";
+            label5.Size = new Size(81, 20);
+            label5.TabIndex = 16;
+            label5.Text = "SAS Token:";
+            // 
+            // textBox_blob_storage_account
+            // 
+            textBox_blob_storage_account.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            autocompleteMenu1.SetAutocompleteMenu(textBox_blob_storage_account, null);
+            textBox_blob_storage_account.Location = new Point(166, 81);
+            textBox_blob_storage_account.Margin = new Padding(4);
+            textBox_blob_storage_account.Name = "textBox_blob_storage_account";
+            textBox_blob_storage_account.Size = new Size(384, 27);
+            textBox_blob_storage_account.TabIndex = 11;
+            // 
+            // textBox_blob_sas_token
+            // 
+            textBox_blob_sas_token.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            autocompleteMenu1.SetAutocompleteMenu(textBox_blob_sas_token, null);
+            textBox_blob_sas_token.Location = new Point(166, 46);
+            textBox_blob_sas_token.Margin = new Padding(4);
+            textBox_blob_sas_token.Name = "textBox_blob_sas_token";
+            textBox_blob_sas_token.Size = new Size(384, 27);
+            textBox_blob_sas_token.TabIndex = 15;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(28, 84);
+            label1.Margin = new Padding(4, 0, 4, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(122, 20);
+            label1.TabIndex = 12;
+            label1.Text = "Storage Account:";
+            // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new Point(28, 119);
+            label4.Margin = new Padding(4, 0, 4, 0);
+            label4.Name = "label4";
+            label4.Size = new Size(76, 20);
+            label4.TabIndex = 14;
+            label4.Text = "Container:";
             // 
             // label9
             // 
-            this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(20, 88);
-            this.label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(99, 20);
-            this.label9.TabIndex = 10;
-            this.label9.Text = "Profile Name:";
+            label9.AutoSize = true;
+            label9.Location = new Point(20, 88);
+            label9.Margin = new Padding(4, 0, 4, 0);
+            label9.Name = "label9";
+            label9.Size = new Size(99, 20);
+            label9.TabIndex = 10;
+            label9.Text = "Profile Name:";
             // 
             // textBox_profileName
             // 
-            this.textBox_profileName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_profileName, null);
-            this.textBox_profileName.Location = new System.Drawing.Point(158, 84);
-            this.textBox_profileName.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_profileName.Name = "textBox_profileName";
-            this.textBox_profileName.Size = new System.Drawing.Size(155, 27);
-            this.textBox_profileName.TabIndex = 9;
+            textBox_profileName.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            autocompleteMenu1.SetAutocompleteMenu(textBox_profileName, null);
+            textBox_profileName.Location = new Point(158, 84);
+            textBox_profileName.Margin = new Padding(4);
+            textBox_profileName.Name = "textBox_profileName";
+            textBox_profileName.Size = new Size(431, 27);
+            textBox_profileName.TabIndex = 9;
             // 
             // button_settings_import
             // 
-            this.button_settings_import.Location = new System.Drawing.Point(25, 191);
-            this.button_settings_import.Margin = new System.Windows.Forms.Padding(4);
-            this.button_settings_import.Name = "button_settings_import";
-            this.button_settings_import.Size = new System.Drawing.Size(94, 29);
-            this.button_settings_import.TabIndex = 7;
-            this.button_settings_import.Text = "Import settingsConn";
-            this.button_settings_import.UseVisualStyleBackColor = true;
-            this.button_settings_import.Click += new System.EventHandler(this.button_settings_import_Click);
+            button_settings_import.Location = new Point(20, 653);
+            button_settings_import.Margin = new Padding(4);
+            button_settings_import.Name = "button_settings_import";
+            button_settings_import.Size = new Size(93, 29);
+            button_settings_import.TabIndex = 7;
+            button_settings_import.Text = "Import settingsConn";
+            button_settings_import.UseVisualStyleBackColor = true;
+            button_settings_import.Click += button_settings_import_Click;
             // 
             // button_settings_export
             // 
-            this.button_settings_export.Location = new System.Drawing.Point(25, 234);
-            this.button_settings_export.Margin = new System.Windows.Forms.Padding(4);
-            this.button_settings_export.Name = "button_settings_export";
-            this.button_settings_export.Size = new System.Drawing.Size(94, 29);
-            this.button_settings_export.TabIndex = 6;
-            this.button_settings_export.Text = "Export settingsConn";
-            this.button_settings_export.UseVisualStyleBackColor = true;
-            this.button_settings_export.Click += new System.EventHandler(this.button_settings_export_Click);
+            button_settings_export.Location = new Point(20, 696);
+            button_settings_export.Margin = new Padding(4);
+            button_settings_export.Name = "button_settings_export";
+            button_settings_export.Size = new Size(93, 29);
+            button_settings_export.TabIndex = 6;
+            button_settings_export.Text = "Export settingsConn";
+            button_settings_export.UseVisualStyleBackColor = true;
+            button_settings_export.Click += button_settings_export_Click;
             // 
             // button_settings_insert
             // 
-            this.button_settings_insert.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_settings_insert.Location = new System.Drawing.Point(368, 234);
-            this.button_settings_insert.Margin = new System.Windows.Forms.Padding(4);
-            this.button_settings_insert.Name = "button_settings_insert";
-            this.button_settings_insert.Size = new System.Drawing.Size(106, 29);
-            this.button_settings_insert.TabIndex = 5;
-            this.button_settings_insert.Text = "Add as new";
-            this.button_settings_insert.UseVisualStyleBackColor = true;
-            this.button_settings_insert.Click += new System.EventHandler(this.button_settings_insert_Click);
+            button_settings_insert.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            button_settings_insert.Location = new Point(368, 696);
+            button_settings_insert.Margin = new Padding(4);
+            button_settings_insert.Name = "button_settings_insert";
+            button_settings_insert.Size = new Size(106, 29);
+            button_settings_insert.TabIndex = 5;
+            button_settings_insert.Text = "Add as new";
+            button_settings_insert.UseVisualStyleBackColor = true;
+            button_settings_insert.Click += button_settings_insert_Click;
             // 
             // button_settings_delete
             // 
-            this.button_settings_delete.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_settings_delete.Location = new System.Drawing.Point(481, 234);
-            this.button_settings_delete.Margin = new System.Windows.Forms.Padding(4);
-            this.button_settings_delete.Name = "button_settings_delete";
-            this.button_settings_delete.Size = new System.Drawing.Size(106, 29);
-            this.button_settings_delete.TabIndex = 4;
-            this.button_settings_delete.Text = "Delete";
-            this.button_settings_delete.UseVisualStyleBackColor = true;
-            this.button_settings_delete.Click += new System.EventHandler(this.button_settings_delete_Click);
+            button_settings_delete.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            button_settings_delete.Location = new Point(481, 696);
+            button_settings_delete.Margin = new Padding(4);
+            button_settings_delete.Name = "button_settings_delete";
+            button_settings_delete.Size = new Size(106, 29);
+            button_settings_delete.TabIndex = 4;
+            button_settings_delete.Text = "Delete";
+            button_settings_delete.UseVisualStyleBackColor = true;
+            button_settings_delete.Click += button_settings_delete_Click;
             // 
             // button_settings_save
             // 
-            this.button_settings_save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_settings_save.Location = new System.Drawing.Point(368, 191);
-            this.button_settings_save.Margin = new System.Windows.Forms.Padding(4);
-            this.button_settings_save.Name = "button_settings_save";
-            this.button_settings_save.Size = new System.Drawing.Size(220, 35);
-            this.button_settings_save.TabIndex = 3;
-            this.button_settings_save.Text = "Update";
-            this.button_settings_save.UseVisualStyleBackColor = true;
-            this.button_settings_save.Click += new System.EventHandler(this.button_settings_save_Click);
+            button_settings_save.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            button_settings_save.Location = new Point(368, 653);
+            button_settings_save.Margin = new Padding(4);
+            button_settings_save.Name = "button_settings_save";
+            button_settings_save.Size = new Size(220, 35);
+            button_settings_save.TabIndex = 3;
+            button_settings_save.Text = "Update";
+            button_settings_save.UseVisualStyleBackColor = true;
+            button_settings_save.Click += button_settings_save_Click;
             // 
             // label3
             // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(20, 122);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(40, 20);
-            this.label3.TabIndex = 2;
-            this.label3.Text = "Path:";
+            label3.AutoSize = true;
+            label3.Location = new Point(20, 122);
+            label3.Margin = new Padding(4, 0, 4, 0);
+            label3.Name = "label3";
+            label3.Size = new Size(91, 20);
+            label3.TabIndex = 2;
+            label3.Text = "Db file path:";
             // 
             // textBox_cosmos_Endpoint
             // 
-            this.textBox_cosmos_Endpoint.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.autocompleteMenu1.SetAutocompleteMenu(this.textBox_cosmos_Endpoint, null);
-            this.textBox_cosmos_Endpoint.Location = new System.Drawing.Point(158, 119);
-            this.textBox_cosmos_Endpoint.Margin = new System.Windows.Forms.Padding(4);
-            this.textBox_cosmos_Endpoint.Name = "textBox_cosmos_Endpoint";
-            this.textBox_cosmos_Endpoint.Size = new System.Drawing.Size(430, 27);
-            this.textBox_cosmos_Endpoint.TabIndex = 0;
+            textBox_cosmos_Endpoint.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            autocompleteMenu1.SetAutocompleteMenu(textBox_cosmos_Endpoint, null);
+            textBox_cosmos_Endpoint.Location = new Point(158, 119);
+            textBox_cosmos_Endpoint.Margin = new Padding(4);
+            textBox_cosmos_Endpoint.Name = "textBox_cosmos_Endpoint";
+            textBox_cosmos_Endpoint.Size = new Size(430, 27);
+            textBox_cosmos_Endpoint.TabIndex = 0;
             // 
             // label2
             // 
-            this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.label2.AutoEllipsis = true;
-            this.label2.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point);
-            this.label2.Location = new System.Drawing.Point(10, 32);
-            this.label2.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.label2.Name = "label2";
-            this.label2.Padding = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.label2.Size = new System.Drawing.Size(596, 28);
-            this.label2.TabIndex = 1;
-            this.label2.Text = "Create multiple profiles so you can have multiple databases.";
-            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            label2.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label2.AutoEllipsis = true;
+            label2.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
+            label2.Location = new Point(10, 32);
+            label2.Margin = new Padding(6, 0, 6, 0);
+            label2.Name = "label2";
+            label2.Padding = new Padding(6, 0, 6, 0);
+            label2.Size = new Size(596, 28);
+            label2.TabIndex = 1;
+            label2.Text = "Create multiple profiles so you can have multiple databases.";
+            label2.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // autocompleteMenu1
             // 
-            this.autocompleteMenu1.Colors = ((AutocompleteMenuNS.Colors)(resources.GetObject("autocompleteMenu1.Colors")));
-            this.autocompleteMenu1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.autocompleteMenu1.ImageList = null;
-            this.autocompleteMenu1.Items = new string[0];
-            this.autocompleteMenu1.TargetControlWrapper = null;
+            autocompleteMenu1.Colors = (AutocompleteMenuNS.Colors)resources.GetObject("autocompleteMenu1.Colors");
+            autocompleteMenu1.Font = new Font("Microsoft Sans Serif", 9F);
+            autocompleteMenu1.ImageList = null;
+            autocompleteMenu1.TargetControlWrapper = null;
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(120F, 120F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(1990, 1559);
-            this.Controls.Add(this.splitContainer1);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4);
-            this.Name = "Form1";
-            this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
-            this.splitContainer2.Panel1.ResumeLayout(false);
-            this.splitContainer2.Panel2.ResumeLayout(false);
-            this.splitContainer2.Panel2.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
-            this.splitContainer2.ResumeLayout(false);
-            this.splitContainer6.Panel1.ResumeLayout(false);
-            this.splitContainer6.Panel1.PerformLayout();
-            this.splitContainer6.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer6)).EndInit();
-            this.splitContainer6.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_request_url)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_request)).EndInit();
-            this.splitContainer5.Panel1.ResumeLayout(false);
-            this.splitContainer5.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer5)).EndInit();
-            this.splitContainer5.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_request_headers)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_request_body)).EndInit();
-            this.statusStrip_response_stats.ResumeLayout(false);
-            this.statusStrip_response_stats.PerformLayout();
-            this.splitContainer3.Panel1.ResumeLayout(false);
-            this.splitContainer3.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer3)).EndInit();
-            this.splitContainer3.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_response_headers)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.textBox_response_body)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
-            this.splitContainer1.Panel1.ResumeLayout(false);
-            this.splitContainer1.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
-            this.splitContainer1.ResumeLayout(false);
-            this.tabControl2.ResumeLayout(false);
-            this.tabPage3.ResumeLayout(false);
-            this.splitContainer4.Panel1.ResumeLayout(false);
-            this.splitContainer4.Panel1.PerformLayout();
-            this.splitContainer4.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer4)).EndInit();
-            this.splitContainer4.ResumeLayout(false);
-            this.tabPage4.ResumeLayout(false);
-            this.tabPage4.PerformLayout();
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
-            this.ResumeLayout(false);
-
+            ClientSize = new Size(1990, 1393);
+            Controls.Add(splitContainer1_main_form);
+            DoubleBuffered = true;
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(4);
+            MinimumSize = new Size(1280, 768);
+            Name = "Form1";
+            SizeGripStyle = SizeGripStyle.Show;
+            StartPosition = FormStartPosition.Manual;
+            FormClosing += Form1_FormClosing;
+            ((System.ComponentModel.ISupportInitialize)textBox_request_headers).EndInit();
+            ((System.ComponentModel.ISupportInitialize)textBox_request_body).EndInit();
+            splitContainer6_main_right.Panel1.ResumeLayout(false);
+            splitContainer6_main_right.Panel1.PerformLayout();
+            splitContainer6_main_right.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer6_main_right).EndInit();
+            splitContainer6_main_right.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)textBox_request_url).EndInit();
+            splitContainer5_reqres.Panel1.ResumeLayout(false);
+            splitContainer5_reqres.Panel2.ResumeLayout(false);
+            splitContainer5_reqres.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer5_reqres).EndInit();
+            splitContainer5_reqres.ResumeLayout(false);
+            tabControl1.ResumeLayout(false);
+            tabPage_request_body.ResumeLayout(false);
+            tabPage_request_header.ResumeLayout(false);
+            tabControl_response.ResumeLayout(false);
+            tabPage_response_body.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)textBox_response_body).EndInit();
+            tabPage_response_headers.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)textBox_response_headers).EndInit();
+            tabPage_statistics_information.ResumeLayout(false);
+            statusStrip_response_stats.ResumeLayout(false);
+            statusStrip_response_stats.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
+            contextMenuStrip1.ResumeLayout(false);
+            splitContainer1_main_form.Panel1.ResumeLayout(false);
+            splitContainer1_main_form.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer1_main_form).EndInit();
+            splitContainer1_main_form.ResumeLayout(false);
+            tabControl2.ResumeLayout(false);
+            tabPage3.ResumeLayout(false);
+            splitContainer4.Panel1.ResumeLayout(false);
+            splitContainer4.Panel1.PerformLayout();
+            splitContainer4.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer4).EndInit();
+            splitContainer4.ResumeLayout(false);
+            tabPage4.ResumeLayout(false);
+            tabPage4.PerformLayout();
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            groupBox2.ResumeLayout(false);
+            groupBox2.PerformLayout();
+            ResumeLayout(false);
         }
 
         #endregion
@@ -1069,13 +1251,9 @@ namespace ApiTester
         private System.Windows.Forms.Button button_request_send;
         private System.Windows.Forms.ComboBox comboBox_http_method;
         private System.Windows.Forms.DataGridView dataGridView1;
-        private System.Windows.Forms.SplitContainer splitContainer1;
-        private System.Windows.Forms.SplitContainer splitContainer2;
+        private System.Windows.Forms.SplitContainer splitContainer1_main_form;
         private System.Windows.Forms.ComboBox comboBox_certificates;
-        private System.Windows.Forms.ComboBox comboBox_http_version;
         private FastColoredTextBoxNS.FastColoredTextBox textBox_request_url;
-        private System.Windows.Forms.Label label_repeat;
-        private System.Windows.Forms.NumericUpDown numericUpDown_request;
         private System.Windows.Forms.TextBox textBox_filter;
         private System.Windows.Forms.TabControl tabControl2;
         private System.Windows.Forms.TabPage tabPage3;
@@ -1093,10 +1271,8 @@ namespace ApiTester
         private System.Windows.Forms.Button button_settings_import;
         private FastColoredTextBoxNS.FastColoredTextBox textBox_response_headers;
         private FastColoredTextBoxNS.FastColoredTextBox textBox_response_body;
-        private System.Windows.Forms.SplitContainer splitContainer6;
-        private System.Windows.Forms.SplitContainer splitContainer5;
-        private System.Windows.Forms.SplitContainer splitContainer3;
-        private System.Windows.Forms.Button button_text_utils;
+        private System.Windows.Forms.SplitContainer splitContainer6_main_right;
+        private System.Windows.Forms.SplitContainer splitContainer5_reqres;
         private AutocompleteMenuNS.AutocompleteMenu autocompleteMenu1;
         private System.Windows.Forms.StatusStrip statusStrip_response_stats;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_response_stats_http_version;
@@ -1106,7 +1282,6 @@ namespace ApiTester
         private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton_response_stats_certificate;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox textBox_profileName;
-        private System.Windows.Forms.Button button_clearAll;
         private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
         private System.Windows.Forms.ToolStripMenuItem copyToToolStripMenuItem;
         private System.Windows.Forms.ComboBox comboBox_group;
@@ -1117,6 +1292,33 @@ namespace ApiTester
         private FastColoredTextBoxNS.FastColoredTextBox textBox_request_headers;
         private System.Windows.Forms.ComboBox comboBox_filter_group;
         private System.Windows.Forms.SplitContainer splitContainer4;
+        private System.Windows.Forms.TabControl tabControl_response;
+        private System.Windows.Forms.TabPage tabPage_response_body;
+        private System.Windows.Forms.TabPage tabPage_response_headers;
+        private System.Windows.Forms.Button button_blob;
+        private System.Windows.Forms.ListBox listBox_blob;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.TextBox textBox_blob_container;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox textBox_blob_storage_account;
+        private System.Windows.Forms.TextBox textBox_blob_sas_token;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TabPage tabPage_statistics_information;
+        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.Button button_blob_list;
+        private TabControl tabControl1;
+        private TabPage tabPage_request_body;
+        private TabPage tabPage_request_header;
+        private ToolStripDropDownButton toolStripDropDownButton_clearAll;
+        private ToolStripDropDownButton toolStripDropDownButton_text_utils;
+        private ToolStripDropDownButton toolStripDropDownButton_request;
+        private ToolStripMenuItem httpVersionToolStripMenuItem;
+        private ToolStripComboBox toolStripComboBox_http_version;
+        private ToolStripMenuItem repeatToolStripMenuItem;
+        private ToolStripTextBox toolStripTextBox_repeat;
+        private ContextMenuStrip contextMenuStrip1;
+        private ToolStripMenuItem copyToToolStripMenuItem1;
     }
 }
 

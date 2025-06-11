@@ -9,11 +9,14 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Collections.Specialized.BitVector32;
+using System.IO;
+using System.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
+using System.Diagnostics.Tracing;
 
 namespace ApiTester
 {
-    //TODO: uložit a načíst splitter a location hodnoty do sqlite, nastavi nějaké rozumné výchozí hodnoty hlavně velikosti okna
+    //TODO: uložit a načíst splitter a location hodnoty do sqlite, nastavit nějaké rozumné výchozí hodnoty hlavně velikosti okna
 
     public partial class Form1 : Form
     {
@@ -23,9 +26,12 @@ namespace ApiTester
         private DataTable dtSessions = new();
         private static Setting _settings = new();
 
+
+
         public Form1()
         {
             InitializeComponent();
+
 
             this.Text = "API Tester  v" + this.ProductVersion;
 
@@ -34,7 +40,7 @@ namespace ApiTester
             dtSessions.Columns.Add("Id", typeof(int));
             dtSessions.Columns.Add("DateTime", typeof(DateTime));
             dtSessions.Columns.Add("ResponseStatusCode", typeof(int));
-            dtSessions.Columns.Add("Method", typeof(string));
+            //dtSessions.Columns.Add("Method", typeof(string));
             dtSessions.Columns.Add("UriHost", typeof(string));
             dtSessions.Columns.Add("UriAbsolutePath", typeof(string));
             dtSessions.Columns.Add("Note", typeof(string));
@@ -79,7 +85,10 @@ namespace ApiTester
                 new AutocompleteItem("https://"),
                 new AutocompleteItem("https://apigw-dev.skoda.vwg/"),
                 new AutocompleteItem("https://apigw-test.skoda.vwg/"),
-                new AutocompleteItem("https://apigw-prod.skoda.vwg/")
+                new AutocompleteItem("https://apigw-prod.skoda.vwg/"),
+                new AutocompleteItem("https://gw-samb-dev.skoda-api.com/"),
+                new AutocompleteItem("https://gw-samb-test.skoda-api.com/"),
+                new AutocompleteItem("https://gw-samb-prod.skoda-api.com/")
             };
             request_url_AutocompleteMenu.Items.SetAutocompleteItems(items_url);
 
@@ -90,36 +99,55 @@ namespace ApiTester
             SaveSplitterData();
         }
 
+
         public async void LoadSessions()
         {
             CursorWait(true);
-            dtSessions.Clear();
+
+            dataGridView1.SuspendLayout();
+            dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
 
             try
             {
+                await sessionsConn.CreateTableAsync<RequestTelemetry>();
                 await sessionsConn.CreateTableAsync<Session>();
 
+
                 AsyncTableQuery<Session> query = sessionsConn.Table<Session>();
-                var allSessions = await query.ToListAsync();
+
+                List<Session> allSessions = query.ToListAsync().Result.Select(x => new Session
+                {
+                    Id = x.Id,
+                    DateTime = x.DateTime,
+                    ResponseStatusCode = x.ResponseStatusCode,
+                    Method = x.Method,
+                    UriHost = x.UriHost,
+                    UriAbsolutePath = x.UriAbsolutePath,
+                    Note = x.Note,
+                    Group = x.Group,
+                }).ToList();
+
+                dtSessions.Clear();
 
                 foreach (Session s in allSessions)
                 {
-                   dtSessions.Rows.Add(new object[] { s.Id, s.DateTime, s.ResponseStatusCode, s.Method, s.UriHost, s.UriAbsolutePath, s.Note, s.Group }); 
+                    dtSessions.Rows.Add(new object[] { s.Id, s.DateTime, s.ResponseStatusCode, s.Method + " " + s.UriHost, s.UriAbsolutePath, s.Note, s.Group });
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
-            
-            dataGridView1.SuspendLayout();
+
             dataGridView1.DataSource = dtSessions;
 
             //Id
             dataGridView1.Columns[0].Visible = false;
 
             //DateTime
-            dataGridView1.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
+            dataGridView1.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            //dataGridView1.Columns[1].Width = 110;
+            //dataGridView1.Columns[1].MinimumWidth = 110;
             dataGridView1.Columns[1].ReadOnly = true;
 
             //ResponseStatusCode
@@ -129,31 +157,43 @@ namespace ApiTester
             dataGridView1.Columns[2].ReadOnly = true;
 
             //Method
-            dataGridView1.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
-            dataGridView1.Columns[3].ReadOnly = true;
+            //dataGridView1.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
+            //dataGridView1.Columns[3].ReadOnly = true;
 
             //UriHost
-            dataGridView1.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
-            dataGridView1.Columns[4].ReadOnly = true;
+            dataGridView1.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.NotSet;
+            dataGridView1.Columns[3].ReadOnly = true;
+            dataGridView1.Columns[3].Width = _settings.dataGridView1_col3_width;
 
             //UriAbsolutePath
-            dataGridView1.Columns[5].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
-            dataGridView1.Columns[5].ReadOnly = true;
-
+            dataGridView1.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
+            dataGridView1.Columns[4].ReadOnly = true;
+       
             //Note
-            dataGridView1.Columns[6].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGridView1.Columns[5].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
             //Group
-            dataGridView1.Columns[7].Visible= false;
+            dataGridView1.Columns[6].Visible = false;
+
 
             dataGridView1.ResumeLayout();
 
-            LoadGroups();
+            await LoadGroups();
+
+            //Scroll down to the newest record
+            if (dataGridView1.RowCount > 0) dataGridView1.FirstDisplayedScrollingRowIndex = dataGridView1.RowCount - 1;
+
+            //Select a new row
+            if (dataGridView1.RowCount > 0) dataGridView1.Rows[dataGridView1.Rows.Count - 1].Selected = true;
+
+
+            //display content of the newly saved session
+            if (dataGridView1.RowCount > 0) await DisplaySession(dataGridView1.Rows.Count - 1);
 
             CursorWait(false);
         }
 
-        public async void LoadGroups()
+        private async Task LoadGroups()
         {
             try
             {
@@ -206,14 +246,14 @@ namespace ApiTester
 
             CursorWait(true);
 
-            for (int y = 0; y < Convert.ToInt32(numericUpDown_request.Text); y++)
+            for (int y = 0; y < Convert.ToInt32(toolStripTextBox_repeat.Text); y++)
             {
                 await SendRequest(
                     textBox_request_body.Text,
                     textBox_request_headers.Text,
                     comboBox_http_method.Text,
                     textBox_request_url.Text,
-                    comboBox_http_version.Text,
+                    toolStripComboBox_http_version.Text,
                     comboBox_certificates.Text
                     );
             }
@@ -250,25 +290,30 @@ namespace ApiTester
 
         private async Task DeleteSession(int Id)
         {
-                try
+            try
+            {
+                //Delete from settingsConn
+                var query = sessionsConn.Table<Session>().Where(s => s.Id == Id);
+                var session = await query.FirstOrDefaultAsync();
+                if (session != null)
                 {
-                    //Delete from settingsConn
-                    var query = sessionsConn.Table<Session>().Where(s => s.Id == Id);
-                    var session = await query.FirstOrDefaultAsync();
-                    if (session != null)  await sessionsConn.DeleteAsync(session);
+                    await sessionsConn.DeleteAsync(session);
+                    int localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
+                    await sessionsConn.ExecuteAsync($"pragma user_version = " + (localVersion + 1) + ";");
+                }
 
-                    //Delete from datagrid
-                    foreach (DataRow dr in dtSessions.Rows)
-                    {
-                        if (dr["Id"].ToString() == Id.ToString())
-                            dr.Delete();
-                    }
-                }
-                catch (Exception ex)
+                //Delete from datagrid
+                foreach (DataRow dr in dtSessions.Rows)
                 {
-                    MessageBox.Show(ex.Message);
-                    CursorWait(false);
+                    if (dr["Id"].ToString() == Id.ToString())
+                        dr.Delete();
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                CursorWait(false);
+            }
         }
 
         private async void DataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
@@ -288,6 +333,7 @@ namespace ApiTester
             return null;
         }
 
+
         private void DataGridView1_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
             if (this.dataGridView1.Columns["ResponseStatusCode"].Index == e.ColumnIndex && e.RowIndex >= 0)
@@ -302,9 +348,9 @@ namespace ApiTester
 
                 if (((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value >= 300) && ((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value < 400))
                 {
-                    e.CellStyle.BackColor = Color.Yellow;
+                    e.CellStyle.BackColor = Color.YellowGreen;
                     e.CellStyle.ForeColor = Color.White;
-                    e.CellStyle.SelectionBackColor = Color.Yellow;
+                    e.CellStyle.SelectionBackColor = Color.YellowGreen;
                     e.CellStyle.SelectionForeColor = Color.White;
                 }
 
@@ -334,19 +380,21 @@ namespace ApiTester
                 string clickedId = dataGridView1.Rows[e.RowIndex].Cells["Id"].Value.ToString();
 
                 Session session = new();
-                    try
-                    {
-                        var query = sessionsConn.Table<Session>().Where(s => s.Id.Equals(clickedId));
-                        session = await query.FirstAsync();
+                try
+                {
+                    var query = sessionsConn.Table<Session>().Where(s => s.Id.Equals(clickedId));
+                    session = await query.FirstAsync();
 
-                        session.Note = (string)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+                    session.Note = (string)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
 
-                        await settingsConn.UpdateAsync(session);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message);
-                    }
+                    await sessionsConn.UpdateAsync(session);
+                    int localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
+                    await sessionsConn.ExecuteAsync($"pragma user_version = " + (localVersion + 1) + ";");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
             }
         }
 
@@ -354,59 +402,37 @@ namespace ApiTester
 
         private async void SaveSplitterData()
         {
-            //Properties.Settings.Default.splitContainer6 = splitContainer6.SplitterDistance;
-            //Properties.Settings.Default.splitContainer5 = splitContainer5.SplitterDistance;
-            //Properties.Settings.Default.splitContainer3 = splitContainer3.SplitterDistance;
-            //Properties.Settings.Default.splitContainer2 = splitContainer2.SplitterDistance;
-            //Properties.Settings.Default.splitContainer1 = splitContainer1.SplitterDistance;
-
-            //Properties.Settings.Default.Location = Location;
-            //Properties.Settings.Default.Size = Size;
-
-            //Properties.Settings.Default.Save();
-          
-            
-
-            _settings.splitContainer6 = splitContainer6.SplitterDistance;
-            _settings.splitContainer5 = splitContainer5.SplitterDistance;
-            _settings.splitContainer3 = splitContainer3.SplitterDistance;
-            _settings.splitContainer2 = splitContainer2.SplitterDistance;
-            _settings.splitContainer1 = splitContainer1.SplitterDistance;
+            //_settings.splitContainer6 = splitContainer6_main_right.SplitterDistance;
+            _settings.splitContainer5 = splitContainer5_reqres.SplitterDistance;
+            //_settings.splitContainer3 = splitContainer4.SplitterDistance;
+            //_settings.splitContainer2 = splitContainer2_request.SplitterDistance;
+            _settings.splitContainer1 = splitContainer1_main_form.SplitterDistance;
 
             _settings.LocationX = Location.X;
             _settings.LocationY = Location.Y;
             _settings.SizeHeight = Size.Height;
             _settings.SizeWidth = Size.Width;
 
+
+            _settings.dataGridView1_col3_width = dataGridView1.Columns[3].Width;
+
             await settingsConn.UpdateAsync(_settings);
-
-
-
         }
 
         private void ApplySavedSplitterData()
         {
- 
-            //Location = Properties.Settings.Default.Location;
-            //Size = Properties.Settings.Default.Size;
-
-            //if (Properties.Settings.Default.splitContainer6 != 0) splitContainer6.SplitterDistance = Properties.Settings.Default.splitContainer6;
-            //if (Properties.Settings.Default.splitContainer5 != 0) splitContainer5.SplitterDistance = Properties.Settings.Default.splitContainer5;
-            //if (Properties.Settings.Default.splitContainer3 != 0) splitContainer3.SplitterDistance = Properties.Settings.Default.splitContainer3;
-            //if (Properties.Settings.Default.splitContainer2 != 0) splitContainer2.SplitterDistance = Properties.Settings.Default.splitContainer2;
-            //if (Properties.Settings.Default.splitContainer1 != 0) splitContainer1.SplitterDistance = Properties.Settings.Default.splitContainer1;
-
-
 
             Location = new Point(_settings.LocationX, _settings.LocationY);
             Size = new Size(_settings.SizeWidth, _settings.SizeHeight);
 
-            splitContainer6.SplitterDistance = _settings.splitContainer6;
-            splitContainer5.SplitterDistance = _settings.splitContainer5;
-            splitContainer3.SplitterDistance = _settings.splitContainer3;
-            splitContainer2.SplitterDistance = _settings.splitContainer2;
-            splitContainer1.SplitterDistance = _settings.splitContainer1;
+            //splitContainer6_main_right.SplitterDistance = _settings.splitContainer6;
+            splitContainer5_reqres.SplitterDistance = _settings.splitContainer5;
+            //splitContainer4.SplitterDistance = _settings.splitContainer3;
+            //splitContainer2_request.SplitterDistance = _settings.splitContainer2;
+            splitContainer1_main_form.SplitterDistance = _settings.splitContainer1;
 
+            //not initialized here yet
+            //dataGridView1.Columns[3].Width = _settings.dataGridView1_col3_width;
         }
 
 
@@ -493,48 +519,7 @@ namespace ApiTester
             //comboBox_certificates.Items.Clear();
         }
 
-        private async void CopyToToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
-        {
-            //get target profile
-            Setting targetProfile = new();
-
-            AsyncTableQuery<Setting> query;
-
-            try
-            {
-                await settingsConn.CreateTableAsync<Setting>();
-
-                int selectedId = Convert.ToInt32(e.ClickedItem.Name);
-
-                query = settingsConn.Table<Setting>().Where(s => s.Id == selectedId);
-                targetProfile = await query.FirstAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-
-
-            //get selected session
-            int Id = (int)dataGridView1.CurrentRow.Cells["Id"].Value;
-
-            var query1 = sessionsConn.Table<Session>().Where(s => s.Id == Id);
-            var session = await query1.FirstOrDefaultAsync();
-
-            //save session to the target profile
-            try
-            {
-                    //session.id = session.sqliteId.ToString();
-                    sessionsConn = new SQLiteAsyncConnection(targetProfile.Endpoint);
-                    await sessionsConn.InsertAsync(session);
-            }
-            catch (Exception ex)
-            {
-                CursorWait(false);
-                MessageBox.Show(ex.Message);
-            }
-
-        }
+        
 
         private async void Button_saveGroup_Click(object sender, EventArgs e)
         {
@@ -548,6 +533,8 @@ namespace ApiTester
             if (session != null) session.Group = group;
 
             await sessionsConn.UpdateAsync(session);
+            int localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
+            await sessionsConn.ExecuteAsync($"pragma user_version = " + (localVersion + 1) + ";");
 
 
             //update datagridview
@@ -583,5 +570,114 @@ namespace ApiTester
                 dtSessions.DefaultView.RowFilter = String.Empty;
             }
         }
+
+        private async void button_blob_Click(object sender, EventArgs e)
+        {
+            listBox_blob.Items.Clear();
+
+
+            FileInfo localdb = new FileInfo(_settings.Endpoint);
+
+            //get version of db in Azure Blob
+            int blobVersion = GetBlobVersion(localdb.Name);
+            listBox_blob.Items.Add("blobVersion: " + blobVersion.ToString());
+
+            //Read user_version pragma from local db
+            var localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
+            listBox_blob.Items.Add("localVersion: " + localVersion.ToString());
+            await sessionsConn.CloseAsync();
+
+            if (blobVersion < localVersion)  //upload local file to blob
+            {
+                listBox_blob.Items.Add("Local db will be uploaded to blob.");
+                await BlobUpload(localdb.FullName, localVersion);
+                listBox_blob.Items.Add("Local uploaded to blob: " + localdb.FullName);
+
+            }
+            else if (blobVersion > localVersion)  //download file from blob to local
+            {
+                listBox_blob.Items.Add("Db from Azure blob will be downloaded.");
+
+                string newname = localdb.FullName + "_" + DateTime.Now.ToFileTime();
+                File.Move(localdb.FullName, newname);
+                listBox_blob.Items.Add("Local db renamed to: " + newname);
+
+                await BlobDownload(localdb.Name, localdb.FullName);
+                listBox_blob.Items.Add("Blob downloaded as: " + localdb.Name);
+
+            }
+
+            LoadSessions();
+        }
+
+        private async void button_blob_list_Click(object sender, EventArgs e)
+        {
+            GetBlobList();
+
+            var localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
+            listBox_blob.Items.Insert(0, "Local version: " + localVersion.ToString());
+
+        }
+
+        private void dataGridView1_RowContextMenuStripNeeded(object sender, DataGridViewRowContextMenuStripNeededEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            { e.ContextMenuStrip = contextMenuStrip1; }
+
+        }
+
+        private async void copyToToolStripMenuItem1_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            await copySessionToNewProfile(e);
+        }
+
+        private async void CopyToToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            await copySessionToNewProfile(e);
+
+        }
+
+        private async Task copySessionToNewProfile(ToolStripItemClickedEventArgs e)
+        {
+            //get target profile
+            Setting targetProfile = new();
+
+            AsyncTableQuery<Setting> query;
+
+            try
+            {
+                await settingsConn.CreateTableAsync<Setting>();
+
+                int selectedId = Convert.ToInt32(e.ClickedItem.Name);
+
+                query = settingsConn.Table<Setting>().Where(s => s.Id == selectedId);
+                targetProfile = await query.FirstAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+
+
+            //get selected session
+            int Id = (int)dataGridView1.CurrentRow.Cells["Id"].Value;
+
+            var query1 = sessionsConn.Table<Session>().Where(s => s.Id == Id);
+            var session = await query1.FirstOrDefaultAsync();
+
+            //save session to the target profile
+            try
+            {
+                //session.id = session.sqliteId.ToString();
+                sessionsConn = new SQLiteAsyncConnection(targetProfile.Endpoint);
+                await sessionsConn.InsertAsync(session);
+            }
+            catch (Exception ex)
+            {
+                CursorWait(false);
+                MessageBox.Show(ex.Message);
+            }
+        }
     }
+
 }

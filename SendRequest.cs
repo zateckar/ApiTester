@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics.Tracing;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -12,9 +14,13 @@ namespace ApiTester
 {
     public partial class Form1 : Form
     {
+        public static RequestTelemetry _requestTelemetry = new();
         public async Task SendRequest(string request_body, string request_headers, string http_method, string request_url, string http_version, string certificate)
         {
+ 
             CursorWait(true);
+
+            using var eventSourceListener = new NetEventListener();
 
             HttpClientHandler handler = new HttpClientHandler();
             handler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
@@ -25,6 +31,7 @@ namespace ApiTester
             HttpRequestMessage request = new HttpRequestMessage();
             StringContent content = new StringContent(request_body);
             content.Headers.Remove("Content-Type");
+
 
             using (StringReader reader = new StringReader(request_headers))
             {
@@ -114,7 +121,7 @@ namespace ApiTester
             }
 
             //Response processing//
-            SaveSession(request, response, watch, handler);
+            SaveSession(request, response, watch, handler, _requestTelemetry);
 
             request.Dispose();
             response.Dispose();
@@ -161,4 +168,47 @@ namespace ApiTester
             return sslErrors == SslPolicyErrors.None;
         }
     }
+
+
+
+    public sealed class NetEventListener : EventListener
+    {
+        
+        protected override void OnEventSourceCreated(EventSource eventSource)
+        {
+            if (eventSource.Name.StartsWith("System.Net"))
+                EnableEvents(eventSource, EventLevel.Informational);
+        }
+        protected override void OnEventWritten(EventWrittenEventArgs eventData)
+        {
+            System.Diagnostics.Debug.WriteLine(eventData.EventName + ": " + eventData.TimeStamp.ToString("o"));
+            
+            if (eventData.EventName == "RequestStart") Form1._requestTelemetry.RequestStart = eventData.TimeStamp;
+            if (eventData.EventName == "RequestStop") Form1._requestTelemetry.RequestStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "ResolutionStart") Form1._requestTelemetry.ResolutionStart = eventData.TimeStamp;
+            if (eventData.EventName == "ResolutionStop") Form1._requestTelemetry.ResolutionStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "ConnectStart") Form1._requestTelemetry.ConnectStart = eventData.TimeStamp;
+            if (eventData.EventName == "ConnectStop") Form1._requestTelemetry.ConnectStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "HandshakeStart") Form1._requestTelemetry.HandshakeStart = eventData.TimeStamp;
+            if (eventData.EventName == "HandshakeStop") Form1._requestTelemetry.HandshakeStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "RequestHeadersStart") Form1._requestTelemetry.RequestHeadersStart = eventData.TimeStamp;
+            if (eventData.EventName == "RequestHeadersStop") Form1._requestTelemetry.RequestHeadersStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "RequestContentStart") Form1._requestTelemetry.RequestContentStart = eventData.TimeStamp;
+            if (eventData.EventName == "RequestContentStop") Form1._requestTelemetry.RequestContentStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "ResponseHeadersStart") Form1._requestTelemetry.ResponseHeadersStart = eventData.TimeStamp;
+            if (eventData.EventName == "ResponseHeadersStop") Form1._requestTelemetry.ResponseHeadersStop = eventData.TimeStamp;
+
+            if (eventData.EventName == "ResponseContentStart") Form1._requestTelemetry.ResponseContentStart = eventData.TimeStamp;
+            if (eventData.EventName == "ResponseContentStop") Form1._requestTelemetry.ResponseContentStop = eventData.TimeStamp;
+
+
+        }
+    }
+
 }

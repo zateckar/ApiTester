@@ -10,7 +10,7 @@ namespace ApiTester
 {
     public partial class Form1 : Form
     {
-        public async Task SaveSession(HttpRequestMessage request, HttpResponseMessage response, System.Diagnostics.Stopwatch watch, HttpClientHandler handler)
+        public async Task SaveSession(HttpRequestMessage request, HttpResponseMessage response, System.Diagnostics.Stopwatch watch, HttpClientHandler handler, RequestTelemetry requestTelemetry)
         {
             this.Cursor = System.Windows.Forms.Cursors.WaitCursor;
 
@@ -49,7 +49,7 @@ namespace ApiTester
             //Response can be quite large - need to compress it.
             var ResponseBody_string = await response.Content.ReadAsStringAsync();
             var ResponseBody_zip = Zip(ResponseBody_string);
-            var ResponseBody_base64 = Convert.ToBase64String(ResponseBody_zip);
+            //var ResponseBody_base64 = Convert.ToBase64String(ResponseBody_zip);
 
             var session = new Session()
             {
@@ -61,15 +61,26 @@ namespace ApiTester
                 UriAbsolutePath = request.RequestUri.AbsolutePath,
                 UriQuery = request.RequestUri.Query,
                 UriHost = request.RequestUri.Host,
-                ResponseBody = ResponseBody_base64,
+                ResponseBody = ResponseBody_zip,
                 ResponseHeaders = sb.ToString(),
                 ResponseTime = (int)watch.ElapsedMilliseconds,
 
                 ResponseLength = Convert.ToInt32(response.Content.Headers.ContentLength.Value),
                 ResponseStatusCode = (int)response.StatusCode,
                 ResponseHttpVersion = response.Version.ToString(),
-                RequestHttpVersion = comboBox_http_version.Text,
-                Group = comboBox_group.Text
+                RequestHttpVersion = toolStripComboBox_http_version.Text,
+                Group = comboBox_group.Text,
+
+                DurationRequest = (requestTelemetry.RequestStop - requestTelemetry.RequestStart).TotalMilliseconds,
+                DurationResolution = (requestTelemetry.ResolutionStop - requestTelemetry.ResolutionStart).TotalMilliseconds,
+                DurationConnect = (requestTelemetry.ConnectStop - requestTelemetry.ConnectStart).TotalMilliseconds,
+                DurationHandshake = (requestTelemetry.HandshakeStop - requestTelemetry.HandshakeStart).TotalMilliseconds,
+               
+                DurationRequestHeaders = (requestTelemetry.RequestHeadersStop - requestTelemetry.RequestHeadersStart).TotalMilliseconds,
+                DurationRequestContent = (requestTelemetry.RequestContentStop - requestTelemetry.RequestContentStart).TotalMilliseconds,
+                DurationResponseHeaders = (requestTelemetry.ResponseHeadersStop - requestTelemetry.ResponseHeadersStart).TotalMilliseconds,
+                DurationResponseContent = (requestTelemetry.ResponseContentStop - requestTelemetry.ResponseContentStart).TotalMilliseconds,
+
             };
 
             if (session.UriAbsoluteUri.Equals(serverCertificate.RequestUri))
@@ -89,6 +100,8 @@ namespace ApiTester
             try
             {
                 await sessionsConn.InsertAsync(session);
+                var localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
+                await sessionsConn.ExecuteAsync($"pragma user_version = "+ (localVersion+1) +";");
             }
             catch (Exception ex)
             {
@@ -99,7 +112,8 @@ namespace ApiTester
             AsyncTableQuery<Session> query = sessionsConn.Table<Session>();
             session = await query.OrderByDescending(c => c.Id).FirstOrDefaultAsync();
 
-            dtSessions.Rows.Add(new object[] { session.Id, session.DateTime, session.ResponseStatusCode, session.Method, session.UriHost, session.UriAbsolutePath, session.Note, session.Group });
+            //dtSessions.Rows.Add(new object[] { session.Id, session.DateTime, session.ResponseStatusCode, session.Method, session.UriHost, session.UriAbsolutePath, session.Note, session.Group });
+            dtSessions.Rows.Add(new object[] { session.Id, session.DateTime, session.ResponseStatusCode, session.Method +" "+ session.UriHost, session.UriAbsolutePath, session.Note, session.Group });
 
             dataGridView1.SuspendLayout();
             dataGridView1.DataSource = dtSessions;
