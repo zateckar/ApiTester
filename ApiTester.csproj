@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <StartupObject></StartupObject>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <AssemblyVersion>1.0.0.1</AssemblyVersion>
+    <FileVersion>1.0.0.1</FileVersion>
+    <Version>1.6</Version>
+    <DebugType>embedded</DebugType>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <SignAssembly>False</SignAssembly>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <ApplicationIcon>icons.ico</ApplicationIcon>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <NeutralLanguage>en</NeutralLanguage>
+
+    <!-- The designer loads toolbar images and the form icon out of the .resx through
+         ResourceManager, which counts as a "custom type" and is switched off by default
+         once the app is trimmed (which Native AOT implies). -->
+    <CustomResourceTypesSupport>true</CustomResourceTypesSupport>
+
+    <!-- The request timing breakdown (DNS, TCP connect, TLS handshake) is collected by
+         listening to the System.Net EventSource. Trimming switches EventSource off by
+         default, which would leave every duration reading 0. -->
+    <EventSourceSupport>true</EventSourceSupport>
+    <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;1137</NoWarn>
+    <DebugType>embedded</DebugType>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <Deterministic>False</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icons.ico" />
+  </ItemGroup>
+
+  <!-- Toolbar art and the window icon, read by Assets.cs. Embedded rather than left in the
+       .resx so loading them does not depend on runtime type-name resolution. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*.png" />
+    <EmbeddedResource Include="Assets\*.ico" />
+  </ItemGroup>
+
+  <!-- tools/ holds the one-off zstd->Brotli converter and vendor/ the FastColoredTextBox
+       source; both are separate projects, not part of this one's compile glob. -->
+  <ItemGroup>
+    <Compile Remove="tools/**;vendor/**" />
+    <EmbeddedResource Remove="tools/**;vendor/**" />
+    <None Remove="tools/**;vendor/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="vendor\FastColoredTextBox\FastColoredTextBox.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <!-- Microsoft.Data.Sqlite is itself built on SQLitePCLRaw and pulls 2.1.11, whose native
+         SQLite binary has a known high severity vulnerability (GHSA-2m69-gcr7-jv3q, unfixed
+         across the whole 2.x line). Direct references win over transitive ones, so these lift
+         the provider and the bundled SQLite binary to the patched 3.x line. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.2" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.50.3" />
+    <PackageReference Include="SQLitePCLRaw.core" Version="3.0.2" />
+    <!-- Response bodies are compressed with BrotliStream from the in-box System.IO.Compression. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

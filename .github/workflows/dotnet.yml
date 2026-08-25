@@ -1,0 +1,65 @@
+name: .NET
+
+on: 'workflow_dispatch'
+
+permissions:
+  contents: write
+
+env:
+  PROJECT: ApiTester.csproj
+  RID: win-x64
+  PUBLISH_DIR: publish
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT }}
+
+    - name: Build
+      run: dotnet build ${{ env.PROJECT }} --no-restore --configuration Release
+
+    # Same flags as _publish.bat: Native AOT (trimmed, self-contained), with the
+    # three size optimizations this app must NOT have kept off. The runner image
+    # ships Visual Studio with the C++ workload, so the MSVC linker is available.
+    - name: Publish (Native AOT)
+      run: >
+        dotnet publish ${{ env.PROJECT }}
+        --configuration Release
+        --runtime ${{ env.RID }}
+        --output ${{ env.PUBLISH_DIR }}
+        -p:PublishAot=true
+        -p:OptimizationPreference=Speed
+        -p:InvariantGlobalization=false
+        -p:UseSystemResourceKeys=false
+        -p:UseNativeHttpHandler=false
+
+    - name: Resolve version
+      run: |
+        $version = ([xml](Get-Content ${{ env.PROJECT }})).Project.PropertyGroup.Version | Select-Object -First 1
+        "VERSION=$version" >> $env:GITHUB_ENV
+        "ARCHIVE=ApiTester-$version-${{ env.RID }}.zip" >> $env:GITHUB_ENV
+
+    - name: Create archive
+      run: |
+        # ILC emits an ~80 MB pdb next to the exe - symbols are not shipped.
+        Remove-Item '${{ env.PUBLISH_DIR }}/ApiTester.pdb' -ErrorAction SilentlyContinue
+        Compress-Archive -Path '${{ env.PUBLISH_DIR }}/*' -DestinationPath '${{ env.ARCHIVE }}'
+
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: ${{ env.ARCHIVE }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ env.VERSION }}
+        name: ApiTester v${{ env.VERSION }}
+        allowUpdates: true
+        replacesArtifacts: true
