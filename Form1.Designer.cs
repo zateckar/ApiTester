@@ -15,9 +15,10 @@ namespace ApiTester
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                components?.Dispose();
+                pendingRowFont?.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -71,6 +72,7 @@ namespace ApiTester
             toolStripStatusLabel_response_stats_datetime = new ToolStripStatusLabel();
             toolStripStatusLabel_response_stats_response_time = new ToolStripStatusLabel();
             toolStripStatusLabel_response_stats_certificate = new ToolStripStatusLabel();
+            toolStripStatusLabel_sync = new ToolStripStatusLabel();
             dataGridView1 = new DataGridView();
             contextMenuStrip1 = new ContextMenuStrip(components);
             copyToToolStripMenuItem1 = new ToolStripMenuItem();
@@ -80,6 +82,35 @@ namespace ApiTester
             splitContainer4 = new SplitContainer();
             textBox_filter = new TextBox();
             comboBox_filter_group = new ComboBox();
+            tabPage_files = new TabPage();
+            listView_files = new ListView();
+            columnHeader_files_name = new ColumnHeader();
+            columnHeader_files_size = new ColumnHeader();
+            columnHeader_files_modified = new ColumnHeader();
+            columnHeader_files_type = new ColumnHeader();
+            contextMenuStrip_files = new ContextMenuStrip(components);
+            downloadToolStripMenuItem = new ToolStripMenuItem();
+            uploadHereToolStripMenuItem = new ToolStripMenuItem();
+            newFolderToolStripMenuItem = new ToolStripMenuItem();
+            renameToolStripMenuItem = new ToolStripMenuItem();
+            deleteToolStripMenuItem = new ToolStripMenuItem();
+            copyPathToolStripMenuItem = new ToolStripMenuItem();
+            refreshToolStripMenuItem = new ToolStripMenuItem();
+            panel_files_status = new Panel();
+            label_files_status = new Label();
+            progressBar_files = new ProgressBar();
+            textBox_files_path = new TextBox();
+            toolStrip_files = new ToolStrip();
+            toolStripButton_files_up = new ToolStripButton();
+            toolStripButton_files_refresh = new ToolStripButton();
+            toolStripButton_files_upload = new ToolStripButton();
+            toolStripButton_files_download = new ToolStripButton();
+            toolStripButton_files_newfolder = new ToolStripButton();
+            toolStripButton_files_delete = new ToolStripButton();
+            toolStripButton_files_cancel = new ToolStripButton();
+            toolStripSeparator_files1 = new ToolStripSeparator();
+            toolStripSeparator_files2 = new ToolStripSeparator();
+            toolStripSeparator_files3 = new ToolStripSeparator();
             tabPage4 = new TabPage();
             label7 = new Label();
             comboBox_settings_profiles = new ComboBox();
@@ -92,6 +123,18 @@ namespace ApiTester
             label5 = new Label();
             textBox_blob_storage_account = new TextBox();
             textBox_blob_sas_token = new TextBox();
+            textBox_blob_encryption_key = new TextBox();
+            label_blob_encryption_key = new Label();
+            textBox_blob_account_key = new TextBox();
+            label_blob_account_key = new Label();
+            comboBox_sync_target = new ComboBox();
+            label_sync_target = new Label();
+            textBox_devops_repo = new TextBox();
+            textBox_devops_pat = new TextBox();
+            textBox_devops_branch = new TextBox();
+            label_devops_repo = new Label();
+            label_devops_pat = new Label();
+            label_devops_branch = new Label();
             label1 = new Label();
             label4 = new Label();
             label9 = new Label();
@@ -104,7 +147,6 @@ namespace ApiTester
             label3 = new Label();
             textBox_cosmos_Endpoint = new TextBox();
             label2 = new Label();
-            autocompleteMenu1 = new AutocompleteMenuNS.AutocompleteMenu();
             ((System.ComponentModel.ISupportInitialize)textBox_request_headers).BeginInit();
             ((System.ComponentModel.ISupportInitialize)textBox_request_body).BeginInit();
             ((System.ComponentModel.ISupportInitialize)splitContainer6_main_right).BeginInit();
@@ -138,6 +180,10 @@ namespace ApiTester
             splitContainer4.Panel1.SuspendLayout();
             splitContainer4.Panel2.SuspendLayout();
             splitContainer4.SuspendLayout();
+            tabPage_files.SuspendLayout();
+            contextMenuStrip_files.SuspendLayout();
+            panel_files_status.SuspendLayout();
+            toolStrip_files.SuspendLayout();
             tabPage4.SuspendLayout();
             groupBox1.SuspendLayout();
             groupBox2.SuspendLayout();
@@ -151,7 +197,7 @@ namespace ApiTester
             button_request_send.FlatAppearance.BorderSize = 0;
             button_request_send.FlatAppearance.MouseDownBackColor = Color.Peru;
             button_request_send.FlatStyle = FlatStyle.Flat;
-            button_request_send.Image = (Image)resources.GetObject("button_request_send.Image");
+            button_request_send.Image = Assets.Image("button_request_send_Image.png");
             button_request_send.Location = new Point(1258, 31);
             button_request_send.Margin = new Padding(4);
             button_request_send.Name = "button_request_send";
@@ -175,7 +221,6 @@ namespace ApiTester
     '\'',
     '\''
     };
-            autocompleteMenu1.SetAutocompleteMenu(textBox_request_headers, null);
             textBox_request_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>.+)\r\n";
             textBox_request_headers.AutoScrollMinSize = new Size(0, 22);
             textBox_request_headers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -202,7 +247,6 @@ namespace ApiTester
             textBox_request_headers.RightBracket = ')';
             textBox_request_headers.RightBracket2 = '}';
             textBox_request_headers.SelectionColor = Color.FromArgb(60, 255, 140, 0);
-            textBox_request_headers.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_request_headers.ServiceColors");
             textBox_request_headers.ServiceLinesColor = SystemColors.ButtonFace;
             textBox_request_headers.Size = new Size(1311, 465);
             textBox_request_headers.TabIndex = 0;
@@ -226,7 +270,6 @@ namespace ApiTester
     '\'',
     '\''
     };
-            autocompleteMenu1.SetAutocompleteMenu(textBox_request_body, null);
             textBox_request_body.AutoIndentCharsPatterns = "^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;=]+);\r\n^\\s*(case|default)\\s*[^:]*(?<range>:)\\s*(?<range>[^;]+);";
             textBox_request_body.AutoScrollMinSize = new Size(0, 22);
             textBox_request_body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -251,7 +294,6 @@ namespace ApiTester
             textBox_request_body.RightBracket = ')';
             textBox_request_body.RightBracket2 = '}';
             textBox_request_body.SelectionColor = Color.FromArgb(60, 255, 140, 0);
-            textBox_request_body.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_request_body.ServiceColors");
             textBox_request_body.ServiceLinesColor = SystemColors.ButtonFace;
             textBox_request_body.Size = new Size(1311, 465);
             textBox_request_body.TabIndex = 3;
@@ -304,7 +346,7 @@ namespace ApiTester
             // button_saveGroup
             // 
             button_saveGroup.AutoSize = true;
-            button_saveGroup.Image = (Image)resources.GetObject("button_saveGroup.Image");
+            button_saveGroup.Image = Assets.Image("button_saveGroup_Image.png");
             button_saveGroup.Location = new Point(283, 38);
             button_saveGroup.Name = "button_saveGroup";
             button_saveGroup.Size = new Size(30, 28);
@@ -348,7 +390,6 @@ namespace ApiTester
     '\'',
     '\''
     };
-            autocompleteMenu1.SetAutocompleteMenu(textBox_request_url, autocompleteMenu1);
             textBox_request_url.AutoIndentCharsPatterns = "";
             textBox_request_url.AutoScrollMinSize = new Size(6, 21);
             textBox_request_url.BackBrush = null;
@@ -373,7 +414,6 @@ namespace ApiTester
             textBox_request_url.RightBracket = '>';
             textBox_request_url.RightBracket2 = ')';
             textBox_request_url.SelectionColor = Color.FromArgb(60, 255, 140, 0);
-            textBox_request_url.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_request_url.ServiceColors");
             textBox_request_url.ShowLineNumbers = false;
             textBox_request_url.ShowScrollBars = false;
             textBox_request_url.Size = new Size(1317, 26);
@@ -507,7 +547,6 @@ namespace ApiTester
     '\'',
     '\''
     };
-            autocompleteMenu1.SetAutocompleteMenu(textBox_response_body, null);
             textBox_response_body.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
             textBox_response_body.AutoScrollMinSize = new Size(0, 23);
             textBox_response_body.AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -533,7 +572,6 @@ namespace ApiTester
             textBox_response_body.RightBracket = ')';
             textBox_response_body.RightBracket2 = ')';
             textBox_response_body.SelectionColor = Color.FromArgb(60, 255, 140, 0);
-            textBox_response_body.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_response_body.ServiceColors");
             textBox_response_body.ServiceLinesColor = SystemColors.ButtonFace;
             textBox_response_body.Size = new Size(1311, 737);
             textBox_response_body.TabIndex = 2;
@@ -568,7 +606,6 @@ namespace ApiTester
     '\'',
     '\''
     };
-            autocompleteMenu1.SetAutocompleteMenu(textBox_response_headers, null);
             textBox_response_headers.AutoIndentCharsPatterns = "\r\n^\\s*[\\w\\.]+(\\s\\w+)?\\s*(?<range>=)\\s*(?<range>[^;]+);\r\n";
             textBox_response_headers.AutoScrollMinSize = new Size(0, 22);
             textBox_response_headers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -596,7 +633,6 @@ namespace ApiTester
             textBox_response_headers.RightBracket = ')';
             textBox_response_headers.RightBracket2 = '}';
             textBox_response_headers.SelectionColor = Color.FromArgb(60, 255, 140, 0);
-            textBox_response_headers.ServiceColors = (FastColoredTextBoxNS.ServiceColors)resources.GetObject("textBox_response_headers.ServiceColors");
             textBox_response_headers.ServiceLinesColor = SystemColors.ButtonFace;
             textBox_response_headers.Size = new Size(1311, 737);
             textBox_response_headers.TabIndex = 3;
@@ -629,7 +665,7 @@ namespace ApiTester
             // statusStrip_response_stats
             // 
             statusStrip_response_stats.ImageScalingSize = new Size(20, 20);
-            statusStrip_response_stats.Items.AddRange(new ToolStripItem[] { toolStripDropDownButton1, toolStripDropDownButton_text_utils, toolStripDropDownButton_request, toolStripDropDownButton_clearAll, toolStripDropDownButton_response_stats_certificate, toolStripStatusLabel_response_stats_http_version, toolStripStatusLabel_response_stats_datetime, toolStripStatusLabel_response_stats_response_time, toolStripStatusLabel_response_stats_certificate });
+            statusStrip_response_stats.Items.AddRange(new ToolStripItem[] { toolStripDropDownButton1, toolStripDropDownButton_text_utils, toolStripDropDownButton_request, toolStripDropDownButton_clearAll, toolStripDropDownButton_response_stats_certificate, toolStripStatusLabel_response_stats_http_version, toolStripStatusLabel_response_stats_datetime, toolStripStatusLabel_response_stats_response_time, toolStripStatusLabel_response_stats_certificate, toolStripStatusLabel_sync });
             statusStrip_response_stats.Location = new Point(0, 776);
             statusStrip_response_stats.Name = "statusStrip_response_stats";
             statusStrip_response_stats.ShowItemToolTips = true;
@@ -656,7 +692,7 @@ namespace ApiTester
             // toolStripDropDownButton_text_utils
             // 
             toolStripDropDownButton_text_utils.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            toolStripDropDownButton_text_utils.Image = (Image)resources.GetObject("toolStripDropDownButton_text_utils.Image");
+            toolStripDropDownButton_text_utils.Image = Assets.Image("toolStripDropDownButton_text_utils_Image.png");
             toolStripDropDownButton_text_utils.ImageScaling = ToolStripItemImageScaling.None;
             toolStripDropDownButton_text_utils.ImageTransparentColor = Color.Magenta;
             toolStripDropDownButton_text_utils.Name = "toolStripDropDownButton_text_utils";
@@ -671,7 +707,7 @@ namespace ApiTester
             // 
             toolStripDropDownButton_request.DisplayStyle = ToolStripItemDisplayStyle.Text;
             toolStripDropDownButton_request.DropDownItems.AddRange(new ToolStripItem[] { httpVersionToolStripMenuItem, repeatToolStripMenuItem });
-            toolStripDropDownButton_request.Image = (Image)resources.GetObject("toolStripDropDownButton_request.Image");
+            toolStripDropDownButton_request.Image = Assets.Image("toolStripDropDownButton_request_Image.png");
             toolStripDropDownButton_request.ImageTransparentColor = Color.Magenta;
             toolStripDropDownButton_request.Name = "toolStripDropDownButton_request";
             toolStripDropDownButton_request.Padding = new Padding(5, 0, 0, 0);
@@ -709,7 +745,7 @@ namespace ApiTester
             // 
             toolStripDropDownButton_clearAll.AccessibleDescription = "Clear request and response forms";
             toolStripDropDownButton_clearAll.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            toolStripDropDownButton_clearAll.Image = (Image)resources.GetObject("toolStripDropDownButton_clearAll.Image");
+            toolStripDropDownButton_clearAll.Image = Assets.Image("toolStripDropDownButton_clearAll_Image.png");
             toolStripDropDownButton_clearAll.ImageScaling = ToolStripItemImageScaling.None;
             toolStripDropDownButton_clearAll.ImageTransparentColor = Color.Magenta;
             toolStripDropDownButton_clearAll.Name = "toolStripDropDownButton_clearAll";
@@ -723,7 +759,7 @@ namespace ApiTester
             // toolStripDropDownButton_response_stats_certificate
             // 
             toolStripDropDownButton_response_stats_certificate.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            toolStripDropDownButton_response_stats_certificate.Image = (Image)resources.GetObject("toolStripDropDownButton_response_stats_certificate.Image");
+            toolStripDropDownButton_response_stats_certificate.Image = Assets.Image("toolStripDropDownButton_response_stats_certificate_Image.png");
             toolStripDropDownButton_response_stats_certificate.ImageTransparentColor = Color.Magenta;
             toolStripDropDownButton_response_stats_certificate.Name = "toolStripDropDownButton_response_stats_certificate";
             toolStripDropDownButton_response_stats_certificate.Size = new Size(134, 28);
@@ -749,7 +785,14 @@ namespace ApiTester
             toolStripStatusLabel_response_stats_certificate.BackColor = Color.IndianRed;
             toolStripStatusLabel_response_stats_certificate.Name = "toolStripStatusLabel_response_stats_certificate";
             toolStripStatusLabel_response_stats_certificate.Size = new Size(0, 24);
-            // 
+            //
+            // toolStripStatusLabel_sync
+            //
+            toolStripStatusLabel_sync.Alignment = ToolStripItemAlignment.Right;
+            toolStripStatusLabel_sync.ForeColor = SystemColors.GrayText;
+            toolStripStatusLabel_sync.Name = "toolStripStatusLabel_sync";
+            toolStripStatusLabel_sync.Size = new Size(0, 24);
+            //
             // dataGridView1
             // 
             dataGridView1.AllowUserToAddRows = false;
@@ -780,7 +823,7 @@ namespace ApiTester
             dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView1.Size = new Size(644, 1323);
             dataGridView1.TabIndex = 3;
-            dataGridView1.VirtualMode = true;
+            dataGridView1.VirtualMode = false;
             dataGridView1.CellPainting += DataGridView1_CellPainting;
             dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
             dataGridView1.RowContextMenuStripNeeded += dataGridView1_RowContextMenuStripNeeded;
@@ -829,6 +872,7 @@ namespace ApiTester
             // 
             tabControl2.Alignment = TabAlignment.Bottom;
             tabControl2.Controls.Add(tabPage3);
+            tabControl2.Controls.Add(tabPage_files);
             tabControl2.Controls.Add(tabPage4);
             tabControl2.Dock = DockStyle.Fill;
             tabControl2.Location = new Point(0, 0);
@@ -872,8 +916,6 @@ namespace ApiTester
             splitContainer4.TabIndex = 11;
             // 
             // textBox_filter
-            // 
-            autocompleteMenu1.SetAutocompleteMenu(textBox_filter, null);
             textBox_filter.BorderStyle = BorderStyle.FixedSingle;
             textBox_filter.Dock = DockStyle.Fill;
             textBox_filter.Font = new Font("Segoe UI", 8F);
@@ -897,9 +939,253 @@ namespace ApiTester
             comboBox_filter_group.Size = new Size(188, 25);
             comboBox_filter_group.TabIndex = 10;
             comboBox_filter_group.SelectedIndexChanged += ComboBox_filter_group_SelectedIndexChanged;
-            // 
+            //
+            // tabPage_files
+            //
+            //Docked children are laid out from the last one added to the first, so the toolbar
+            //takes the top edge, the path box the strip under it, and the list what is left.
+            tabPage_files.Controls.Add(listView_files);
+            tabPage_files.Controls.Add(panel_files_status);
+            tabPage_files.Controls.Add(textBox_files_path);
+            tabPage_files.Controls.Add(toolStrip_files);
+            tabPage_files.Location = new Point(4, 4);
+            tabPage_files.Margin = new Padding(4);
+            tabPage_files.Name = "tabPage_files";
+            tabPage_files.Padding = new Padding(4);
+            tabPage_files.Size = new Size(652, 1360);
+            tabPage_files.TabIndex = 2;
+            tabPage_files.Text = "Files";
+            tabPage_files.UseVisualStyleBackColor = true;
+            //
+            // listView_files
+            //
+            listView_files.AllowDrop = true;
+            listView_files.Columns.AddRange(new ColumnHeader[] { columnHeader_files_name, columnHeader_files_size, columnHeader_files_modified, columnHeader_files_type });
+            listView_files.ContextMenuStrip = contextMenuStrip_files;
+            listView_files.Dock = DockStyle.Fill;
+            listView_files.FullRowSelect = true;
+            listView_files.HideSelection = false;
+            listView_files.Location = new Point(4, 63);
+            listView_files.Name = "listView_files";
+            listView_files.Size = new Size(644, 1265);
+            listView_files.TabIndex = 2;
+            listView_files.UseCompatibleStateImageBehavior = false;
+            listView_files.View = View.Details;
+            listView_files.ColumnClick += ListView_files_ColumnClick;
+            listView_files.ItemDrag += ListView_files_ItemDrag;
+            listView_files.DragDrop += ListView_files_DragDrop;
+            listView_files.DragEnter += ListView_files_DragEnter;
+            listView_files.DragLeave += ListView_files_DragLeave;
+            listView_files.DragOver += ListView_files_DragOver;
+            listView_files.DoubleClick += ListView_files_DoubleClick;
+            listView_files.KeyDown += ListView_files_KeyDown;
+            //
+            // columnHeader_files_name
+            //
+            columnHeader_files_name.Text = "Name";
+            columnHeader_files_name.Width = 220;
+            //
+            // columnHeader_files_size
+            //
+            columnHeader_files_size.Text = "Size";
+            columnHeader_files_size.TextAlign = HorizontalAlignment.Right;
+            columnHeader_files_size.Width = 70;
+            //
+            // columnHeader_files_modified
+            //
+            columnHeader_files_modified.Text = "Modified";
+            columnHeader_files_modified.Width = 125;
+            //
+            // columnHeader_files_type
+            //
+            columnHeader_files_type.Text = "Type";
+            columnHeader_files_type.Width = 75;
+            //
+            // contextMenuStrip_files
+            //
+            contextMenuStrip_files.Items.AddRange(new ToolStripItem[] { downloadToolStripMenuItem, uploadHereToolStripMenuItem, newFolderToolStripMenuItem, renameToolStripMenuItem, deleteToolStripMenuItem, copyPathToolStripMenuItem, refreshToolStripMenuItem });
+            contextMenuStrip_files.Name = "contextMenuStrip_files";
+            contextMenuStrip_files.Size = new Size(181, 158);
+            //
+            // downloadToolStripMenuItem
+            //
+            downloadToolStripMenuItem.Name = "downloadToolStripMenuItem";
+            downloadToolStripMenuItem.Size = new Size(180, 22);
+            downloadToolStripMenuItem.Text = "Download...";
+            downloadToolStripMenuItem.Click += Button_files_download_Click;
+            //
+            // uploadHereToolStripMenuItem
+            //
+            uploadHereToolStripMenuItem.Name = "uploadHereToolStripMenuItem";
+            uploadHereToolStripMenuItem.Size = new Size(180, 22);
+            uploadHereToolStripMenuItem.Text = "Upload here...";
+            uploadHereToolStripMenuItem.Click += Button_files_upload_Click;
+            //
+            // newFolderToolStripMenuItem
+            //
+            newFolderToolStripMenuItem.Name = "newFolderToolStripMenuItem";
+            newFolderToolStripMenuItem.Size = new Size(180, 22);
+            newFolderToolStripMenuItem.Text = "New folder...";
+            newFolderToolStripMenuItem.Click += Button_files_newfolder_Click;
+            //
+            // renameToolStripMenuItem
+            //
+            renameToolStripMenuItem.Name = "renameToolStripMenuItem";
+            renameToolStripMenuItem.Size = new Size(180, 22);
+            renameToolStripMenuItem.Text = "Rename...";
+            renameToolStripMenuItem.Click += Button_files_rename_Click;
+            //
+            // deleteToolStripMenuItem
+            //
+            deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
+            deleteToolStripMenuItem.Size = new Size(180, 22);
+            deleteToolStripMenuItem.Text = "Delete";
+            deleteToolStripMenuItem.Click += Button_files_delete_Click;
+            //
+            // copyPathToolStripMenuItem
+            //
+            copyPathToolStripMenuItem.Name = "copyPathToolStripMenuItem";
+            copyPathToolStripMenuItem.Size = new Size(180, 22);
+            copyPathToolStripMenuItem.Text = "Copy path";
+            copyPathToolStripMenuItem.Click += Menu_files_copy_path_Click;
+            //
+            // refreshToolStripMenuItem
+            //
+            refreshToolStripMenuItem.Name = "refreshToolStripMenuItem";
+            refreshToolStripMenuItem.Size = new Size(180, 22);
+            refreshToolStripMenuItem.Text = "Refresh";
+            refreshToolStripMenuItem.Click += Button_files_refresh_Click;
+            //
+            // panel_files_status
+            //
+            panel_files_status.Controls.Add(label_files_status);
+            panel_files_status.Controls.Add(progressBar_files);
+            panel_files_status.Dock = DockStyle.Bottom;
+            panel_files_status.Location = new Point(4, 1328);
+            panel_files_status.Name = "panel_files_status";
+            panel_files_status.Padding = new Padding(2, 3, 2, 3);
+            panel_files_status.Size = new Size(644, 28);
+            panel_files_status.TabIndex = 3;
+            //
+            // label_files_status
+            //
+            label_files_status.AutoEllipsis = true;
+            label_files_status.Dock = DockStyle.Fill;
+            label_files_status.Font = new Font("Segoe UI", 8F);
+            label_files_status.Location = new Point(2, 3);
+            label_files_status.Name = "label_files_status";
+            label_files_status.Size = new Size(440, 22);
+            label_files_status.TabIndex = 1;
+            label_files_status.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // progressBar_files
+            //
+            progressBar_files.Dock = DockStyle.Right;
+            progressBar_files.Location = new Point(502, 3);
+            progressBar_files.Maximum = 1000;
+            progressBar_files.Name = "progressBar_files";
+            progressBar_files.Size = new Size(140, 22);
+            progressBar_files.TabIndex = 0;
+            //
+            // textBox_files_path
+            //
+            textBox_files_path.BorderStyle = BorderStyle.FixedSingle;
+            textBox_files_path.Dock = DockStyle.Top;
+            textBox_files_path.Font = new Font("Segoe UI", 8F);
+            textBox_files_path.Location = new Point(4, 38);
+            textBox_files_path.Name = "textBox_files_path";
+            textBox_files_path.PlaceholderText = "/ (container root)";
+            textBox_files_path.Size = new Size(644, 25);
+            textBox_files_path.TabIndex = 1;
+            textBox_files_path.KeyDown += TextBox_files_path_KeyDown;
+            //
+            // toolStrip_files
+            //
+            toolStrip_files.GripStyle = ToolStripGripStyle.Hidden;
+            toolStrip_files.Items.AddRange(new ToolStripItem[] { toolStripButton_files_up, toolStripButton_files_refresh, toolStripSeparator_files1, toolStripButton_files_upload, toolStripButton_files_download, toolStripSeparator_files2, toolStripButton_files_newfolder, toolStripButton_files_delete, toolStripSeparator_files3, toolStripButton_files_cancel });
+            toolStrip_files.Location = new Point(4, 4);
+            toolStrip_files.Name = "toolStrip_files";
+            toolStrip_files.Size = new Size(644, 34);
+            toolStrip_files.TabIndex = 0;
+            //
+            // toolStripButton_files_up
+            //
+            toolStripButton_files_up.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_up.Name = "toolStripButton_files_up";
+            toolStripButton_files_up.Size = new Size(36, 29);
+            toolStripButton_files_up.Text = "Up";
+            toolStripButton_files_up.ToolTipText = "Go to the parent folder";
+            toolStripButton_files_up.Click += Button_files_up_Click;
+            //
+            // toolStripButton_files_refresh
+            //
+            toolStripButton_files_refresh.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_refresh.Name = "toolStripButton_files_refresh";
+            toolStripButton_files_refresh.Size = new Size(60, 29);
+            toolStripButton_files_refresh.Text = "Refresh";
+            toolStripButton_files_refresh.Click += Button_files_refresh_Click;
+            //
+            // toolStripSeparator_files1
+            //
+            toolStripSeparator_files1.Name = "toolStripSeparator_files1";
+            toolStripSeparator_files1.Size = new Size(6, 34);
+            //
+            // toolStripButton_files_upload
+            //
+            toolStripButton_files_upload.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_upload.Name = "toolStripButton_files_upload";
+            toolStripButton_files_upload.Size = new Size(66, 29);
+            toolStripButton_files_upload.Text = "Upload...";
+            toolStripButton_files_upload.ToolTipText = "Upload files into this folder. Files can also be dropped onto the list.";
+            toolStripButton_files_upload.Click += Button_files_upload_Click;
+            //
+            // toolStripButton_files_download
+            //
+            toolStripButton_files_download.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_download.Name = "toolStripButton_files_download";
+            toolStripButton_files_download.Size = new Size(82, 29);
+            toolStripButton_files_download.Text = "Download...";
+            toolStripButton_files_download.ToolTipText = "Download the selection. It can also be dragged straight into Explorer.";
+            toolStripButton_files_download.Click += Button_files_download_Click;
+            //
+            // toolStripSeparator_files2
+            //
+            toolStripSeparator_files2.Name = "toolStripSeparator_files2";
+            toolStripSeparator_files2.Size = new Size(6, 34);
+            //
+            // toolStripButton_files_newfolder
+            //
+            toolStripButton_files_newfolder.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_newfolder.Name = "toolStripButton_files_newfolder";
+            toolStripButton_files_newfolder.Size = new Size(80, 29);
+            toolStripButton_files_newfolder.Text = "New folder";
+            toolStripButton_files_newfolder.Click += Button_files_newfolder_Click;
+            //
+            // toolStripButton_files_delete
+            //
+            toolStripButton_files_delete.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_delete.Name = "toolStripButton_files_delete";
+            toolStripButton_files_delete.Size = new Size(52, 29);
+            toolStripButton_files_delete.Text = "Delete";
+            toolStripButton_files_delete.Click += Button_files_delete_Click;
+            //
+            // toolStripSeparator_files3
+            //
+            toolStripSeparator_files3.Name = "toolStripSeparator_files3";
+            toolStripSeparator_files3.Size = new Size(6, 34);
+            //
+            // toolStripButton_files_cancel
+            //
+            toolStripButton_files_cancel.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_files_cancel.Enabled = false;
+            toolStripButton_files_cancel.Name = "toolStripButton_files_cancel";
+            toolStripButton_files_cancel.Size = new Size(52, 29);
+            toolStripButton_files_cancel.Text = "Cancel";
+            toolStripButton_files_cancel.ToolTipText = "Stop the transfer that is running";
+            toolStripButton_files_cancel.Click += Button_files_cancel_Click;
+            //
             // tabPage4
-            // 
+            //
             tabPage4.Controls.Add(label7);
             tabPage4.Controls.Add(comboBox_settings_profiles);
             tabPage4.Controls.Add(groupBox1);
@@ -951,7 +1237,7 @@ namespace ApiTester
             groupBox1.Margin = new Padding(4);
             groupBox1.Name = "groupBox1";
             groupBox1.Padding = new Padding(4);
-            groupBox1.Size = new Size(616, 744);
+            groupBox1.Size = new Size(616, 902);
             groupBox1.TabIndex = 2;
             groupBox1.TabStop = false;
             groupBox1.Text = "Database profile settings";
@@ -966,24 +1252,36 @@ namespace ApiTester
             groupBox2.Controls.Add(label5);
             groupBox2.Controls.Add(textBox_blob_storage_account);
             groupBox2.Controls.Add(textBox_blob_sas_token);
+            groupBox2.Controls.Add(textBox_blob_encryption_key);
+            groupBox2.Controls.Add(label_blob_encryption_key);
+            groupBox2.Controls.Add(textBox_blob_account_key);
+            groupBox2.Controls.Add(label_blob_account_key);
+            groupBox2.Controls.Add(comboBox_sync_target);
+            groupBox2.Controls.Add(label_sync_target);
+            groupBox2.Controls.Add(textBox_devops_repo);
+            groupBox2.Controls.Add(textBox_devops_pat);
+            groupBox2.Controls.Add(textBox_devops_branch);
+            groupBox2.Controls.Add(label_devops_repo);
+            groupBox2.Controls.Add(label_devops_pat);
+            groupBox2.Controls.Add(label_devops_branch);
             groupBox2.Controls.Add(label1);
             groupBox2.Controls.Add(label4);
             groupBox2.Location = new Point(20, 188);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new Size(569, 429);
+            groupBox2.Size = new Size(569, 565);
             groupBox2.TabIndex = 17;
             groupBox2.TabStop = false;
-            groupBox2.Text = "Azure Blob Synchronization";
+            groupBox2.Text = "Synchronization";
             // 
             // button_blob_list
             // 
             button_blob_list.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            button_blob_list.Location = new Point(426, 372);
+            button_blob_list.Location = new Point(426, 521);
             button_blob_list.Margin = new Padding(4);
             button_blob_list.Name = "button_blob_list";
             button_blob_list.Size = new Size(124, 32);
             button_blob_list.TabIndex = 17;
-            button_blob_list.Text = "List blobs";
+            button_blob_list.Text = "List remote contents";
             button_blob_list.UseVisualStyleBackColor = true;
             button_blob_list.Click += button_blob_list_Click;
             // 
@@ -992,16 +1290,15 @@ namespace ApiTester
             listBox_blob.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             listBox_blob.BorderStyle = BorderStyle.FixedSingle;
             listBox_blob.FormattingEnabled = true;
-            listBox_blob.Location = new Point(28, 167);
+            listBox_blob.Location = new Point(28, 366);
             listBox_blob.Name = "listBox_blob";
-            listBox_blob.Size = new Size(522, 202);
+            listBox_blob.Size = new Size(522, 145);
             listBox_blob.TabIndex = 8;
             // 
             // textBox_blob_container
             // 
             textBox_blob_container.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            autocompleteMenu1.SetAutocompleteMenu(textBox_blob_container, null);
-            textBox_blob_container.Location = new Point(166, 116);
+            textBox_blob_container.Location = new Point(166, 138);
             textBox_blob_container.Margin = new Padding(4);
             textBox_blob_container.Name = "textBox_blob_container";
             textBox_blob_container.Size = new Size(384, 27);
@@ -1009,31 +1306,30 @@ namespace ApiTester
             // 
             // button_blob
             // 
-            button_blob.Location = new Point(28, 372);
+            button_blob.Location = new Point(28, 521);
             button_blob.Margin = new Padding(4);
             button_blob.MinimumSize = new Size(230, 0);
             button_blob.Name = "button_blob";
             button_blob.Size = new Size(230, 32);
             button_blob.TabIndex = 7;
-            button_blob.Text = "Sync local db with Azure blob";
+            button_blob.Text = "Sync now";
             button_blob.UseVisualStyleBackColor = true;
             button_blob.Click += button_blob_Click;
             // 
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(28, 49);
+            label5.Location = new Point(28, 73);
             label5.Margin = new Padding(4, 0, 4, 0);
             label5.Name = "label5";
-            label5.Size = new Size(81, 20);
+            label5.Size = new Size(77, 20);
             label5.TabIndex = 16;
             label5.Text = "SAS Token:";
             // 
             // textBox_blob_storage_account
             // 
             textBox_blob_storage_account.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            autocompleteMenu1.SetAutocompleteMenu(textBox_blob_storage_account, null);
-            textBox_blob_storage_account.Location = new Point(166, 81);
+            textBox_blob_storage_account.Location = new Point(166, 104);
             textBox_blob_storage_account.Margin = new Padding(4);
             textBox_blob_storage_account.Name = "textBox_blob_storage_account";
             textBox_blob_storage_account.Size = new Size(384, 27);
@@ -1042,17 +1338,134 @@ namespace ApiTester
             // textBox_blob_sas_token
             // 
             textBox_blob_sas_token.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            autocompleteMenu1.SetAutocompleteMenu(textBox_blob_sas_token, null);
-            textBox_blob_sas_token.Location = new Point(166, 46);
+            textBox_blob_sas_token.Location = new Point(166, 70);
             textBox_blob_sas_token.Margin = new Padding(4);
             textBox_blob_sas_token.Name = "textBox_blob_sas_token";
             textBox_blob_sas_token.Size = new Size(384, 27);
             textBox_blob_sas_token.TabIndex = 15;
+            //
+            // textBox_blob_encryption_key
+            //
+            textBox_blob_encryption_key.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBox_blob_encryption_key.Location = new Point(166, 204);
+            textBox_blob_encryption_key.Margin = new Padding(4);
+            textBox_blob_encryption_key.Name = "textBox_blob_encryption_key";
+            textBox_blob_encryption_key.Size = new Size(384, 27);
+            textBox_blob_encryption_key.TabIndex = 18;
+            textBox_blob_encryption_key.UseSystemPasswordChar = true;
+            //
+            // label_blob_encryption_key
+            //
+            label_blob_encryption_key.AutoSize = true;
+            label_blob_encryption_key.Location = new Point(28, 207);
+            label_blob_encryption_key.Margin = new Padding(4, 0, 4, 0);
+            label_blob_encryption_key.Name = "label_blob_encryption_key";
+            label_blob_encryption_key.Size = new Size(110, 20);
+            label_blob_encryption_key.TabIndex = 19;
+            label_blob_encryption_key.Text = "Encryption key:";
+            //
+            // textBox_blob_account_key
+            //
+            textBox_blob_account_key.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBox_blob_account_key.Location = new Point(166, 172);
+            textBox_blob_account_key.Margin = new Padding(4);
+            textBox_blob_account_key.Name = "textBox_blob_account_key";
+            textBox_blob_account_key.Size = new Size(384, 27);
+            textBox_blob_account_key.TabIndex = 20;
+            textBox_blob_account_key.UseSystemPasswordChar = true;
+            //
+            // label_blob_account_key
+            //
+            label_blob_account_key.AutoSize = true;
+            label_blob_account_key.Location = new Point(28, 175);
+            label_blob_account_key.Margin = new Padding(4, 0, 4, 0);
+            label_blob_account_key.Name = "label_blob_account_key";
+            label_blob_account_key.Size = new Size(92, 20);
+            label_blob_account_key.TabIndex = 21;
+            label_blob_account_key.Text = "Account key:";
+            //
+            // comboBox_sync_target
+            //
+            comboBox_sync_target.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBox_sync_target.FormattingEnabled = true;
+            comboBox_sync_target.Items.AddRange(new object[] { "Azure Blob Storage", "Azure DevOps Git repository" });
+            comboBox_sync_target.Location = new Point(166, 36);
+            comboBox_sync_target.Name = "comboBox_sync_target";
+            comboBox_sync_target.Size = new Size(260, 28);
+            comboBox_sync_target.TabIndex = 22;
+            comboBox_sync_target.SelectedIndexChanged += ComboBox_sync_target_SelectedIndexChanged;
+            //
+            // label_sync_target
+            //
+            label_sync_target.AutoSize = true;
+            label_sync_target.Location = new Point(28, 39);
+            label_sync_target.Margin = new Padding(4, 0, 4, 0);
+            label_sync_target.Name = "label_sync_target";
+            label_sync_target.Size = new Size(105, 20);
+            label_sync_target.TabIndex = 29;
+            label_sync_target.Text = "Synchronize at:";
+            //
+            // textBox_devops_repo
+            //
+            textBox_devops_repo.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBox_devops_repo.Location = new Point(166, 258);
+            textBox_devops_repo.Margin = new Padding(4);
+            textBox_devops_repo.Name = "textBox_devops_repo";
+            textBox_devops_repo.Size = new Size(384, 27);
+            textBox_devops_repo.TabIndex = 23;
+            //
+            // label_devops_repo
+            //
+            label_devops_repo.AutoSize = true;
+            label_devops_repo.Location = new Point(28, 261);
+            label_devops_repo.Margin = new Padding(4, 0, 4, 0);
+            label_devops_repo.Name = "label_devops_repo";
+            label_devops_repo.Size = new Size(84, 20);
+            label_devops_repo.TabIndex = 24;
+            label_devops_repo.Text = "Repository:";
+            //
+            // textBox_devops_pat
+            //
+            textBox_devops_pat.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            textBox_devops_pat.Location = new Point(166, 292);
+            textBox_devops_pat.Margin = new Padding(4);
+            textBox_devops_pat.Name = "textBox_devops_pat";
+            textBox_devops_pat.Size = new Size(384, 27);
+            textBox_devops_pat.TabIndex = 25;
+            textBox_devops_pat.UseSystemPasswordChar = true;
+            //
+            // label_devops_pat
+            //
+            label_devops_pat.AutoSize = true;
+            label_devops_pat.Location = new Point(28, 295);
+            label_devops_pat.Margin = new Padding(4, 0, 4, 0);
+            label_devops_pat.Name = "label_devops_pat";
+            label_devops_pat.Size = new Size(36, 20);
+            label_devops_pat.TabIndex = 26;
+            label_devops_pat.Text = "PAT:";
+            //
+            // textBox_devops_branch
+            //
+            textBox_devops_branch.Location = new Point(166, 324);
+            textBox_devops_branch.Margin = new Padding(4);
+            textBox_devops_branch.Name = "textBox_devops_branch";
+            textBox_devops_branch.Size = new Size(160, 27);
+            textBox_devops_branch.TabIndex = 27;
+            //
+            // label_devops_branch
+            //
+            label_devops_branch.AutoSize = true;
+            label_devops_branch.Location = new Point(28, 327);
+            label_devops_branch.Margin = new Padding(4, 0, 4, 0);
+            label_devops_branch.Name = "label_devops_branch";
+            label_devops_branch.Size = new Size(57, 20);
+            label_devops_branch.TabIndex = 28;
+            label_devops_branch.Text = "Branch:";
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(28, 84);
+            label1.Location = new Point(28, 107);
             label1.Margin = new Padding(4, 0, 4, 0);
             label1.Name = "label1";
             label1.Size = new Size(122, 20);
@@ -1062,7 +1475,7 @@ namespace ApiTester
             // label4
             // 
             label4.AutoSize = true;
-            label4.Location = new Point(28, 119);
+            label4.Location = new Point(28, 141);
             label4.Margin = new Padding(4, 0, 4, 0);
             label4.Name = "label4";
             label4.Size = new Size(76, 20);
@@ -1082,7 +1495,6 @@ namespace ApiTester
             // textBox_profileName
             // 
             textBox_profileName.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            autocompleteMenu1.SetAutocompleteMenu(textBox_profileName, null);
             textBox_profileName.Location = new Point(158, 84);
             textBox_profileName.Margin = new Padding(4);
             textBox_profileName.Name = "textBox_profileName";
@@ -1094,27 +1506,27 @@ namespace ApiTester
             button_settings_import.Location = new Point(20, 653);
             button_settings_import.Margin = new Padding(4);
             button_settings_import.Name = "button_settings_import";
-            button_settings_import.Size = new Size(93, 29);
+            button_settings_import.Size = new Size(150, 29);
             button_settings_import.TabIndex = 7;
-            button_settings_import.Text = "Import settingsConn";
+            button_settings_import.Text = "Import sessions...";
             button_settings_import.UseVisualStyleBackColor = true;
             button_settings_import.Click += button_settings_import_Click;
             // 
             // button_settings_export
             // 
-            button_settings_export.Location = new Point(20, 696);
+            button_settings_export.Location = new Point(20, 854);
             button_settings_export.Margin = new Padding(4);
             button_settings_export.Name = "button_settings_export";
-            button_settings_export.Size = new Size(93, 29);
+            button_settings_export.Size = new Size(150, 29);
             button_settings_export.TabIndex = 6;
-            button_settings_export.Text = "Export settingsConn";
+            button_settings_export.Text = "Export sessions...";
             button_settings_export.UseVisualStyleBackColor = true;
             button_settings_export.Click += button_settings_export_Click;
             // 
             // button_settings_insert
             // 
             button_settings_insert.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            button_settings_insert.Location = new Point(368, 696);
+            button_settings_insert.Location = new Point(368, 854);
             button_settings_insert.Margin = new Padding(4);
             button_settings_insert.Name = "button_settings_insert";
             button_settings_insert.Size = new Size(106, 29);
@@ -1126,7 +1538,7 @@ namespace ApiTester
             // button_settings_delete
             // 
             button_settings_delete.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            button_settings_delete.Location = new Point(481, 696);
+            button_settings_delete.Location = new Point(481, 854);
             button_settings_delete.Margin = new Padding(4);
             button_settings_delete.Name = "button_settings_delete";
             button_settings_delete.Size = new Size(106, 29);
@@ -1138,7 +1550,7 @@ namespace ApiTester
             // button_settings_save
             // 
             button_settings_save.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            button_settings_save.Location = new Point(368, 653);
+            button_settings_save.Location = new Point(368, 811);
             button_settings_save.Margin = new Padding(4);
             button_settings_save.Name = "button_settings_save";
             button_settings_save.Size = new Size(220, 35);
@@ -1160,7 +1572,6 @@ namespace ApiTester
             // textBox_cosmos_Endpoint
             // 
             textBox_cosmos_Endpoint.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            autocompleteMenu1.SetAutocompleteMenu(textBox_cosmos_Endpoint, null);
             textBox_cosmos_Endpoint.Location = new Point(158, 119);
             textBox_cosmos_Endpoint.Margin = new Padding(4);
             textBox_cosmos_Endpoint.Name = "textBox_cosmos_Endpoint";
@@ -1181,19 +1592,12 @@ namespace ApiTester
             label2.Text = "Create multiple profiles so you can have multiple databases.";
             label2.TextAlign = ContentAlignment.MiddleLeft;
             // 
-            // autocompleteMenu1
-            // 
-            autocompleteMenu1.Colors = (AutocompleteMenuNS.Colors)resources.GetObject("autocompleteMenu1.Colors");
-            autocompleteMenu1.Font = new Font("Microsoft Sans Serif", 9F);
-            autocompleteMenu1.ImageList = null;
-            autocompleteMenu1.TargetControlWrapper = null;
-            // 
             // Form1
             // 
             ClientSize = new Size(1990, 1393);
             Controls.Add(splitContainer1_main_form);
             DoubleBuffered = true;
-            Icon = (Icon)resources.GetObject("$this.Icon");
+            Icon = Assets.Icon("this_Icon.ico");
             Margin = new Padding(4);
             MinimumSize = new Size(1280, 768);
             Name = "Form1";
@@ -1237,6 +1641,12 @@ namespace ApiTester
             splitContainer4.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer4).EndInit();
             splitContainer4.ResumeLayout(false);
+            tabPage_files.ResumeLayout(false);
+            tabPage_files.PerformLayout();
+            contextMenuStrip_files.ResumeLayout(false);
+            panel_files_status.ResumeLayout(false);
+            toolStrip_files.ResumeLayout(false);
+            toolStrip_files.PerformLayout();
             tabPage4.ResumeLayout(false);
             tabPage4.PerformLayout();
             groupBox1.ResumeLayout(false);
@@ -1258,6 +1668,35 @@ namespace ApiTester
         private System.Windows.Forms.TabControl tabControl2;
         private System.Windows.Forms.TabPage tabPage3;
         private System.Windows.Forms.TabPage tabPage4;
+        private System.Windows.Forms.TabPage tabPage_files;
+        private System.Windows.Forms.ListView listView_files;
+        private System.Windows.Forms.ColumnHeader columnHeader_files_name;
+        private System.Windows.Forms.ColumnHeader columnHeader_files_size;
+        private System.Windows.Forms.ColumnHeader columnHeader_files_modified;
+        private System.Windows.Forms.ColumnHeader columnHeader_files_type;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip_files;
+        private System.Windows.Forms.ToolStripMenuItem downloadToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem uploadHereToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem newFolderToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem renameToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyPathToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem refreshToolStripMenuItem;
+        private System.Windows.Forms.Panel panel_files_status;
+        private System.Windows.Forms.Label label_files_status;
+        private System.Windows.Forms.ProgressBar progressBar_files;
+        private System.Windows.Forms.TextBox textBox_files_path;
+        private System.Windows.Forms.ToolStrip toolStrip_files;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_up;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_refresh;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_upload;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_download;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_newfolder;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_delete;
+        private System.Windows.Forms.ToolStripButton toolStripButton_files_cancel;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator_files1;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator_files2;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator_files3;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox textBox_cosmos_Endpoint;
@@ -1273,12 +1712,12 @@ namespace ApiTester
         private FastColoredTextBoxNS.FastColoredTextBox textBox_response_body;
         private System.Windows.Forms.SplitContainer splitContainer6_main_right;
         private System.Windows.Forms.SplitContainer splitContainer5_reqres;
-        private AutocompleteMenuNS.AutocompleteMenu autocompleteMenu1;
         private System.Windows.Forms.StatusStrip statusStrip_response_stats;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_response_stats_http_version;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_response_stats_datetime;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_response_stats_response_time;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_response_stats_certificate;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_sync;
         private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton_response_stats_certificate;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox textBox_profileName;
@@ -1302,6 +1741,18 @@ namespace ApiTester
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.TextBox textBox_blob_storage_account;
         private System.Windows.Forms.TextBox textBox_blob_sas_token;
+        private System.Windows.Forms.TextBox textBox_blob_encryption_key;
+        private System.Windows.Forms.TextBox textBox_blob_account_key;
+        private System.Windows.Forms.Label label_blob_account_key;
+        private System.Windows.Forms.ComboBox comboBox_sync_target;
+        private System.Windows.Forms.Label label_sync_target;
+        private System.Windows.Forms.TextBox textBox_devops_repo;
+        private System.Windows.Forms.TextBox textBox_devops_pat;
+        private System.Windows.Forms.TextBox textBox_devops_branch;
+        private System.Windows.Forms.Label label_devops_repo;
+        private System.Windows.Forms.Label label_devops_pat;
+        private System.Windows.Forms.Label label_devops_branch;
+        private System.Windows.Forms.Label label_blob_encryption_key;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TabPage tabPage_statistics_information;

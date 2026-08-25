@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace ApiTester
 {
-    public partial class Form_text_utils : Form
+    public partial class TextUtilsForm : Form
     {
-        public Form_text_utils()
+        public TextUtilsForm()
         {
             InitializeComponent();
         }
@@ -59,7 +59,7 @@ namespace ApiTester
             }
         }
 
-        private void Form_text_utils_Load(object sender, EventArgs e)
+        private void TextUtilsForm_Load(object sender, EventArgs e)
         {
             fastColoredTextBox_input.Text  = Clipboard.GetText();
         }

@@ -1,12 +1,11 @@
-﻿using System;
+using System;
 using System.Diagnostics.Tracing;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -14,56 +13,24 @@ namespace ApiTester
 {
     public partial class Form1 : Form
     {
-        public static RequestTelemetry _requestTelemetry = new();
-        public async Task SendRequest(string request_body, string request_headers, string http_method, string request_url, string http_version, string certificate)
+        //HttpClient defaults to 100s, which cut off slow endpoints mid-response.
+        private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(240);
+
+        public async Task SendRequest(string requestBody, string requestHeaders, string httpMethod, string requestUrl, string httpVersion, string certificate)
         {
- 
             CursorWait(true);
 
+            serverCertificate = new ServerCertificate();
+
+            //Each request gets a listener of its own with its own telemetry instance. A
+            //process-wide EventSource feeds every live listener every System.Net event -
+            //shared state would let the sync's requests overwrite a request in flight, and
+            //stages that do not fire (a pooled connection skips DNS/TCP/TLS) keep the fresh
+            //zero values rather than the previous request's.
             using var eventSourceListener = new NetEventListener();
 
-            HttpClientHandler handler = new HttpClientHandler();
+            using HttpClientHandler handler = new HttpClientHandler();
             handler.ServerCertificateCustomValidationCallback = ServerCertificateCustomValidation;
-
-            HttpClient client = new HttpClient(handler);
-
-            //var databasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MyData.settingsConn");
-            HttpRequestMessage request = new HttpRequestMessage();
-            StringContent content = new StringContent(request_body);
-            content.Headers.Remove("Content-Type");
-
-
-            using (StringReader reader = new StringReader(request_headers))
-            {
-                string s;
-                while ((s = reader.ReadLine()) != null)
-                {
-                    if (s.Contains(":"))
-                    {
-                        int pom1 = s.IndexOf(":");
-                        string key = s.Substring(0, pom1).Trim();
-                        string value = s.Substring(pom1 + 1, s.Length - (pom1 + 1)).Trim();
-
-                        //add authorization headers
-                        bool headerAdded = request.Headers.TryAddWithoutValidation(key, value);
-
-                        if (headerAdded == false)
-                        {
-                            //add content-type and other content relatedt headers
-                            content.Headers.TryAddWithoutValidation(key, value);
-                        }
-                    }
-                }
-            }
-
-            //Probably no need to automatically add a trace header....
-            //if (content.Headers.Contains("traceparent") == false) content.Headers.Add("traceparent", GetTraceparent());
-
-            request.Method = new HttpMethod(http_method);
-            request.RequestUri = new Uri(request_url);
-            request.Content = content;
-            request.Version = ConvertHttpVersion(http_version);
-            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
 
             if (certificate.Length > 0)
             {
@@ -71,89 +38,151 @@ namespace ApiTester
                 handler.AllowAutoRedirect = true;
                 handler.SslProtocols = SslProtocols.None;
 
-                var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
 
                 try
                 {
                     store.Open(OpenFlags.ReadOnly);
                     X509Certificate2 clientCert = FindCert(store, certificate);
+
+                    if (clientCert is null)
+                    {
+                        CursorWait(false);
+                        MessageBox.Show("Can´t retrieve selected certificate from your local certificate store.");
+                        return;
+                    }
+
                     handler.ClientCertificates.Add(clientCert);
                 }
-                catch (Exception)
+                catch (Exception ex) when (ex is CryptographicException or System.Security.SecurityException)
                 {
                     CursorWait(false);
-                    MessageBox.Show("Can´t retrieve selected certificate from your local certificate store.");
+                    MessageBox.Show("Can´t retrieve selected certificate from your local certificate store.\n\n" + ex.Message);
+                    return;
                 }
-                store.Dispose();
-
             }
 
-            HttpResponseMessage response = new HttpResponseMessage();
+            using HttpClient client = new HttpClient(handler) { Timeout = RequestTimeout };
+
+            using HttpRequestMessage request = new HttpRequestMessage();
+            StringContent content = new StringContent(requestBody);
+            content.Headers.Remove("Content-Type");
+
+            using (StringReader reader = new StringReader(requestHeaders))
+            {
+                string s;
+                while ((s = reader.ReadLine()) != null)
+                {
+                    if (s.Contains(':'))
+                    {
+                        int pom1 = s.IndexOf(':');
+                        string key = s.Substring(0, pom1).Trim();
+                        string value = s.Substring(pom1 + 1).Trim();
+
+                        //add authorization headers
+                        bool headerAdded = request.Headers.TryAddWithoutValidation(key, value);
+
+                        if (headerAdded == false)
+                        {
+                            //add content-type and other content related headers
+                            content.Headers.TryAddWithoutValidation(key, value);
+                        }
+                    }
+                }
+            }
+
+            request.Method = new HttpMethod(httpMethod);
+
+            if (!Uri.TryCreate(requestUrl, UriKind.Absolute, out Uri requestUri))
+            {
+                CursorWait(false);
+                MessageBox.Show("\"" + requestUrl + "\" is not a valid absolute URL.");
+                return;
+            }
+
+            request.RequestUri = requestUri;
+
+            //Some servers reject a bodyless GET/HEAD that still carries a Content-Length.
+            //Only attach content when there is something to send, or the verb expects a body.
+            bool bodylessVerb = request.Method == HttpMethod.Get || request.Method == HttpMethod.Head;
+            if (!bodylessVerb || requestBody.Length > 0) request.Content = content;
+            else content.Dispose();
+
+            request.Version = ConvertHttpVersion(httpVersion);
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+
+            using HttpResponseMessage response = new HttpResponseMessage();
             var watch = new System.Diagnostics.Stopwatch();
+
+            HttpResponseMessage sent = null;
+
+            //Long requests are otherwise invisible - nothing but a wait cursor says one is
+            //still in flight. The placeholder is dropped again before the saved session is
+            //appended, so the grid never shows both.
+            PendingRequest pending = BeginPendingRow(httpMethod, requestUri);
 
             try
             {
                 watch.Start();
-                response = await client.SendAsync(request);
+                sent = await client.SendAsync(request);
                 watch.Stop();
-                await response.Content.LoadIntoBufferAsync();
-
+                await sent.Content.LoadIntoBufferAsync();
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
-                CursorWait(false);
+                watch.Stop();
+                response.Content = new StringContent("Request failed: " + ex.Message);
                 response.StatusCode = System.Net.HttpStatusCode.ServiceUnavailable;
             }
             // Filter by InnerException.
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
                 // Handle timeout.
+                watch.Stop();
                 response.Content = new StringContent("Timed out: " + ex.Message);
                 response.StatusCode = System.Net.HttpStatusCode.ServiceUnavailable;
-                CursorWait(false);
             }
             catch (TaskCanceledException ex)
             {
                 // Handle cancellation.
+                watch.Stop();
                 response.Content = new StringContent("Canceled: " + ex.Message);
                 response.StatusCode = System.Net.HttpStatusCode.ServiceUnavailable;
-                CursorWait(false);
+            }
+            finally
+            {
+                EndPendingRow(pending);
             }
 
-            //Response processing//
-            SaveSession(request, response, watch, handler, _requestTelemetry);
-
-            request.Dispose();
-            response.Dispose();
-            handler.Dispose();
-            client.Dispose();
+            //Response processing - must complete before request/response/handler are disposed,
+            //because SaveSession reads their content and headers.
+            try
+            {
+                await SaveSession(request, sent ?? response, watch, handler, eventSourceListener.Telemetry);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not save the session: " + ex.Message);
+            }
+            finally
+            {
+                sent?.Dispose();
+            }
 
             CursorWait(false);
         }
 
         private void CursorWait(bool wait)
         {
-         if(wait)
-            {
-                this.Cursor = Cursors.WaitCursor;
-                dataGridView1.Cursor = Cursors.WaitCursor;
-                textBox_request_body.Cursor = Cursors.WaitCursor;
-                textBox_request_headers.Cursor = Cursors.WaitCursor;
-                textBox_response_body.Cursor = Cursors.WaitCursor;
-                textBox_response_headers.Cursor = Cursors.WaitCursor;
-                textBox_request_url.Cursor = Cursors.WaitCursor;
-            }
-            else
-            {
-                this.Cursor = Cursors.Default;
-                dataGridView1.Cursor = Cursors.Default;
-                textBox_request_body.Cursor = Cursors.Default;
-                textBox_request_headers.Cursor = Cursors.Default;
-                textBox_response_body.Cursor = Cursors.Default;
-                textBox_response_headers.Cursor = Cursors.Default;
-                textBox_request_url.Cursor = Cursors.Default;
-            }
-            
+            Cursor cursor = wait ? Cursors.WaitCursor : Cursors.Default;
+
+            this.Cursor = cursor;
+            dataGridView1.Cursor = cursor;
+            textBox_request_body.Cursor = cursor;
+            textBox_request_headers.Cursor = cursor;
+            textBox_response_body.Cursor = cursor;
+            textBox_response_headers.Cursor = cursor;
+            textBox_request_url.Cursor = cursor;
         }
 
         private static bool ServerCertificateCustomValidation(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslErrors)
@@ -173,41 +202,47 @@ namespace ApiTester
 
     public sealed class NetEventListener : EventListener
     {
-        
+        //Per listener, not shared: the System.Net event sources are process-wide, so any other
+        //HttpClient in the process (the sync's, for one) fires here too while it is enabled.
+        internal RequestTelemetry Telemetry { get; } = new();
+
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
-            if (eventSource.Name.StartsWith("System.Net"))
+            if (eventSource.Name.StartsWith("System.Net", StringComparison.Ordinal))
                 EnableEvents(eventSource, EventLevel.Informational);
         }
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
             System.Diagnostics.Debug.WriteLine(eventData.EventName + ": " + eventData.TimeStamp.ToString("o"));
-            
-            if (eventData.EventName == "RequestStart") Form1._requestTelemetry.RequestStart = eventData.TimeStamp;
-            if (eventData.EventName == "RequestStop") Form1._requestTelemetry.RequestStop = eventData.TimeStamp;
 
-            if (eventData.EventName == "ResolutionStart") Form1._requestTelemetry.ResolutionStart = eventData.TimeStamp;
-            if (eventData.EventName == "ResolutionStop") Form1._requestTelemetry.ResolutionStop = eventData.TimeStamp;
+            RequestTelemetry telemetry = Telemetry;
 
-            if (eventData.EventName == "ConnectStart") Form1._requestTelemetry.ConnectStart = eventData.TimeStamp;
-            if (eventData.EventName == "ConnectStop") Form1._requestTelemetry.ConnectStop = eventData.TimeStamp;
+            switch (eventData.EventName)
+            {
+                case "RequestStart": telemetry.RequestStart = eventData.TimeStamp; break;
+                case "RequestStop": telemetry.RequestStop = eventData.TimeStamp; break;
 
-            if (eventData.EventName == "HandshakeStart") Form1._requestTelemetry.HandshakeStart = eventData.TimeStamp;
-            if (eventData.EventName == "HandshakeStop") Form1._requestTelemetry.HandshakeStop = eventData.TimeStamp;
+                case "ResolutionStart": telemetry.ResolutionStart = eventData.TimeStamp; break;
+                case "ResolutionStop": telemetry.ResolutionStop = eventData.TimeStamp; break;
 
-            if (eventData.EventName == "RequestHeadersStart") Form1._requestTelemetry.RequestHeadersStart = eventData.TimeStamp;
-            if (eventData.EventName == "RequestHeadersStop") Form1._requestTelemetry.RequestHeadersStop = eventData.TimeStamp;
+                case "ConnectStart": telemetry.ConnectStart = eventData.TimeStamp; break;
+                case "ConnectStop": telemetry.ConnectStop = eventData.TimeStamp; break;
 
-            if (eventData.EventName == "RequestContentStart") Form1._requestTelemetry.RequestContentStart = eventData.TimeStamp;
-            if (eventData.EventName == "RequestContentStop") Form1._requestTelemetry.RequestContentStop = eventData.TimeStamp;
+                case "HandshakeStart": telemetry.HandshakeStart = eventData.TimeStamp; break;
+                case "HandshakeStop": telemetry.HandshakeStop = eventData.TimeStamp; break;
 
-            if (eventData.EventName == "ResponseHeadersStart") Form1._requestTelemetry.ResponseHeadersStart = eventData.TimeStamp;
-            if (eventData.EventName == "ResponseHeadersStop") Form1._requestTelemetry.ResponseHeadersStop = eventData.TimeStamp;
+                case "RequestHeadersStart": telemetry.RequestHeadersStart = eventData.TimeStamp; break;
+                case "RequestHeadersStop": telemetry.RequestHeadersStop = eventData.TimeStamp; break;
 
-            if (eventData.EventName == "ResponseContentStart") Form1._requestTelemetry.ResponseContentStart = eventData.TimeStamp;
-            if (eventData.EventName == "ResponseContentStop") Form1._requestTelemetry.ResponseContentStop = eventData.TimeStamp;
+                case "RequestContentStart": telemetry.RequestContentStart = eventData.TimeStamp; break;
+                case "RequestContentStop": telemetry.RequestContentStop = eventData.TimeStamp; break;
 
+                case "ResponseHeadersStart": telemetry.ResponseHeadersStart = eventData.TimeStamp; break;
+                case "ResponseHeadersStop": telemetry.ResponseHeadersStop = eventData.TimeStamp; break;
 
+                case "ResponseContentStart": telemetry.ResponseContentStart = eventData.TimeStamp; break;
+                case "ResponseContentStop": telemetry.ResponseContentStop = eventData.TimeStamp; break;
+            }
         }
     }
 

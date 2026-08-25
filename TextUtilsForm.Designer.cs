@@ -1,6 +1,6 @@
-﻿namespace ApiTester
+namespace ApiTester
 {
-    partial class Form_text_utils
+    partial class TextUtilsForm
     {
         /// <summary>
         /// Required designer variable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_text_utils));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(TextUtilsForm));
             this.fastColoredTextBox_input = new FastColoredTextBoxNS.FastColoredTextBox();
             this.fastColoredTextBox_output = new FastColoredTextBoxNS.FastColoredTextBox();
             this.comboBox_operation = new System.Windows.Forms.ComboBox();
@@ -148,15 +148,15 @@
             this.splitContainer1.SplitterDistance = 172;
             this.splitContainer1.TabIndex = 3;
             // 
-            // Form_text_utils
+            // TextUtilsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(120F, 120F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.ClientSize = new System.Drawing.Size(1434, 392);
             this.Controls.Add(this.splitContainer1);
-            this.Name = "Form_text_utils";
+            this.Name = "TextUtilsForm";
             this.Text = "Text utilities";
-            this.Load += new System.EventHandler(this.Form_text_utils_Load);
+            this.Load += new System.EventHandler(this.TextUtilsForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.fastColoredTextBox_input)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.fastColoredTextBox_output)).EndInit();
             this.splitContainer1.Panel1.ResumeLayout(false);

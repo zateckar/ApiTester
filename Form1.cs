@@ -1,31 +1,121 @@
-﻿using FastColoredTextBoxNS;
-using SQLite;
+using FastColoredTextBoxNS;
+using FastColoredTextBoxNS.Text;
+using FastColoredTextBoxNS.Types;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
-using System.Diagnostics.Tracing;
 
 namespace ApiTester
 {
-    //TODO: uložit a načíst splitter a location hodnoty do sqlite, nastavit nějaké rozumné výchozí hodnoty hlavně velikosti okna
-
     public partial class Form1 : Form
     {
-        private SQLiteAsyncConnection settingsConn = new("settings.sqlite");
-        private SQLiteAsyncConnection sessionsConn;
-        public static ServerCertificate serverCertificate = new();
-        private DataTable dtSessions = new();
+        private readonly SqliteStore settingsConn = new("settings.sqlite");
+        private SqliteStore sessionsConn;
+        private static ServerCertificate serverCertificate = new();
         private static Setting _settings = new();
 
+        /// <summary>Read-only access for the sync stores - the profile the sync runs against.</summary>
+        internal static Setting CurrentSettings => _settings;
+
+        //The grid is populated row by row rather than bound to a DataTable. WinForms data
+        //binding throws NotSupportedException once the app is trimmed, which Native AOT
+        //implies, so this list is the source of truth and the grid is a view over it.
+        private readonly List<SessionRow> allRows = new();
+        private string textFilter = string.Empty;
+        private string groupFilter = string.Empty;
+
+        /// <summary>
+        /// One grid row's worth of a session. Mirrors the columns created in CreateGridColumns.
+        /// </summary>
+        private sealed class SessionRow
+        {
+            public int Id { get; init; }
+            public object Timestamp { get; init; }
+
+            //Null while a request is still running - there is no status code yet, and the
+            //column has to stay empty rather than read as an HTTP 0.
+            public int? StatusCode { get; init; }
+            public string MethodAndHost { get; init; }
+            public string Path { get; init; }
+            public string Note { get; set; }
+            public string Group { get; set; }
+
+            /// <summary>
+            /// A placeholder for a request that has not come back yet, not a stored session.
+            /// </summary>
+            public bool IsPending { get; init; }
+
+            public static SessionRow From(Session s)
+            {
+                return new SessionRow
+                {
+                    Id = s.Id,
+                    Timestamp = Stamp(s.DateTime),
+                    StatusCode = s.ResponseStatusCode,
+                    MethodAndHost = s.Method + " " + s.UriHost,
+                    Path = s.UriAbsolutePath,
+                    Note = s.Note,
+                    Group = s.Group
+                };
+            }
+
+            /// <summary>
+            /// Builds a row from the <see cref="SessionRowProjection"/> columns. The grid needs
+            /// eight of a session's thirty-odd fields, and reading whole sessions to fill it
+            /// meant loading every stored response body as well.
+            /// </summary>
+            public static SessionRow FromProjection(object[] values)
+            {
+                return new SessionRow
+                {
+                    Id = SqliteStore.AsInt(values[0]),
+                    Timestamp = Stamp(SqliteStore.AsString(values[1])),
+                    StatusCode = SqliteStore.AsInt(values[2]),
+                    MethodAndHost = SqliteStore.AsString(values[3]) + " " + SqliteStore.AsString(values[4]),
+                    Path = SqliteStore.AsString(values[5]),
+                    Note = SqliteStore.AsString(values[6]),
+                    Group = SqliteStore.AsString(values[7])
+                };
+            }
+
+            //Stored as an ISO-ish string; parse so the column sorts and formats as a date.
+            private static object Stamp(string value)
+                => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsed)
+                    ? parsed
+                    : value;
+        }
+
+        /// <summary>
+        /// Set while the grid is being updated in code. CellValueChanged cannot tell a user
+        /// edit from a programmatic one, and persisting the latter overwrites the note.
+        /// </summary>
+        private bool suppressNoteUpdates;
+
+        /// <summary>
+        /// Set while the grid is being rebuilt, when the current row moves for reasons that have
+        /// nothing to do with the user.
+        /// </summary>
+        private bool suppressRowEnterDisplay;
+
+        /// <summary>
+        /// The session the request and response panes are showing. Lets RowEnter tell a real
+        /// change of row from the current row being re-established after a repaint - reloading
+        /// the panes would throw away the user's scroll position in them.
+        /// </summary>
+        private int displayedSessionId;
+
+        //Extra URL suggestions are read from this file next to the executable. It is gitignored -
+        //internal hostnames do not belong in source control.
+        private const string UrlSuggestionsFile = "urls.txt";
 
 
         public Form1()
@@ -35,23 +125,35 @@ namespace ApiTester
 
             this.Text = "API Tester  v" + this.ProductVersion;
 
-            typeof(DataGridView).InvokeMember("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty, null, dataGridView1, new object[] { true });
+            typeof(DataGridView).InvokeMember("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty, null, dataGridView1, new object[] { true }, CultureInfo.InvariantCulture);
 
-            dtSessions.Columns.Add("Id", typeof(int));
-            dtSessions.Columns.Add("DateTime", typeof(DateTime));
-            dtSessions.Columns.Add("ResponseStatusCode", typeof(int));
-            //dtSessions.Columns.Add("Method", typeof(string));
-            dtSessions.Columns.Add("UriHost", typeof(string));
-            dtSessions.Columns.Add("UriAbsolutePath", typeof(string));
-            dtSessions.Columns.Add("Note", typeof(string));
-            dtSessions.Columns.Add("Group", typeof(string));
+            CreateGridColumns();
 
-            comboBox_settings_profiles.DisplayMember = "ProfileName";
-            comboBox_settings_profiles.ValueMember = "Id";
+            //No DisplayMember: the combo holds ProfileItem, whose ToString is the profile name.
+            //DisplayMember goes through the binding stack, which is unavailable when trimmed.
 
-            LoadSettings();
             LoadCertificates();
+            SetupAutocomplete();
+            SetupSync();
+            SetupFilesTab();
+        }
 
+        protected override async void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            try
+            {
+                await LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void SetupAutocomplete()
+        {
             //add autocomplete to request headers
             var request_headers_AutocompleteMenu = new AutocompleteMenu(textBox_request_headers);
             request_headers_AutocompleteMenu.Items.MaximumSize = new Size(300, 200);
@@ -80,139 +182,443 @@ namespace ApiTester
             request_url_AutocompleteMenu.Items.Width = 300;
             request_url_AutocompleteMenu.MinFragmentLength = 1;
 
-            var items_url = new List<AutocompleteItem>
+            var items_url = new List<AutocompleteItem> { new AutocompleteItem("https://") };
+
+            //Environment specific hostnames live in a local, untracked file - one URL per line.
+            try
             {
-                new AutocompleteItem("https://"),
-                new AutocompleteItem("https://apigw-dev.skoda.vwg/"),
-                new AutocompleteItem("https://apigw-test.skoda.vwg/"),
-                new AutocompleteItem("https://apigw-prod.skoda.vwg/"),
-                new AutocompleteItem("https://gw-samb-dev.skoda-api.com/"),
-                new AutocompleteItem("https://gw-samb-test.skoda-api.com/"),
-                new AutocompleteItem("https://gw-samb-prod.skoda-api.com/")
-            };
+                string suggestionsPath = Path.Combine(AppContext.BaseDirectory, UrlSuggestionsFile);
+
+                if (File.Exists(suggestionsPath))
+                {
+                    foreach (string line in File.ReadAllLines(suggestionsPath))
+                    {
+                        if (!string.IsNullOrWhiteSpace(line)) items_url.Add(new AutocompleteItem(line.Trim()));
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                //Suggestions are optional - a missing or locked file is not worth interrupting startup.
+            }
+
             request_url_AutocompleteMenu.Items.SetAutocompleteItems(items_url);
-
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private async void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            SaveSplitterData();
-        }
+            if (splitterDataSaved) return;
 
+            CleanFilesStaging();
 
-        public async void LoadSessions()
-        {
-            CursorWait(true);
-
-            dataGridView1.SuspendLayout();
-            dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            //The window closes before a fire-and-forget save completes, so cancel this close,
+            //persist, then close for real.
+            e.Cancel = true;
 
             try
             {
-                await sessionsConn.CreateTableAsync<RequestTelemetry>();
-                await sessionsConn.CreateTableAsync<Session>();
+                await SaveSplitterData();
+
+                //Last chance to publish this session's changes; whatever is left stays marked
+                //dirty and goes out on the next start.
+                await FlushSyncOnClose();
+            }
+            catch (Exception)
+            {
+                //Losing the window layout must not block shutdown.
+            }
+
+            splitterDataSaved = true;
+            Close();
+        }
+
+        private bool splitterDataSaved;
 
 
-                AsyncTableQuery<Session> query = sessionsConn.Table<Session>();
+        //A session has more than thirty columns, one of them the compressed response body. The
+        //grid needs these eight, and asking for only them keeps a reload off the megabytes.
+        //Rows deleted locally are kept until the container has taken the delete - they are not
+        //sessions any more and must not show up.
+        private const string SessionRowProjection =
+            "select Id, \"DateTime\", ResponseStatusCode, Method, UriHost, UriAbsolutePath, Note, \"Group\""
+            + " from Session where Deleted = 0 order by Id";
 
-                List<Session> allSessions = query.ToListAsync().Result.Select(x => new Session
+        public async Task LoadSessions()
+        {
+            CursorWait(true);
+
+            try
+            {
+                try
                 {
-                    Id = x.Id,
-                    DateTime = x.DateTime,
-                    ResponseStatusCode = x.ResponseStatusCode,
-                    Method = x.Method,
-                    UriHost = x.UriHost,
-                    UriAbsolutePath = x.UriAbsolutePath,
-                    Note = x.Note,
-                    Group = x.Group,
-                }).ToList();
-
-                dtSessions.Clear();
-
-                foreach (Session s in allSessions)
+                    if (sessionsConn is not null)
+                    {
+                        //Also adds the sync columns to a database written before them.
+                        await EnsureSyncSchema();
+                        await ReloadSessionRows();
+                    }
+                }
+                catch (Exception ex)
                 {
-                    dtSessions.Rows.Add(new object[] { s.Id, s.DateTime, s.ResponseStatusCode, s.Method + " " + s.UriHost, s.UriAbsolutePath, s.Note, s.Group });
+                    MessageBox.Show(ex.Message);
+                }
+
+                await LoadGroups();
+
+                SelectLastGridRow();
+
+                //display content of the newly saved session
+                if (dataGridView1.RowCount > 0) await DisplaySession(dataGridView1.RowCount - 1);
+
+                //Catches up with the other instances, and publishes anything this one still owes.
+                RequestSync();
+            }
+            finally
+            {
+                CursorWait(false);
+            }
+        }
+
+        /// <summary>
+        /// Rebuilds the row model from the database and repaints the grid, keeping the user's
+        /// place. Used both on load and after a sync brings something in.
+        /// </summary>
+        private async Task ReloadSessionRows()
+        {
+            var rows = await sessionsConn.RawRowsAsync(SessionRowProjection);
+
+            //Placeholders for requests in flight are not in the database - they would be lost.
+            var pending = allRows.Where(r => r.IsPending).ToList();
+
+            allRows.Clear();
+            foreach (object[] values in rows) allRows.Add(SessionRow.FromProjection(values));
+            allRows.AddRange(pending);
+
+            RefreshGrid();
+        }
+
+        /// <summary>
+        /// Declares the grid's columns once. Nothing is auto generated from a data source,
+        /// so the column set and order are fixed here rather than by a DataTable's schema.
+        /// </summary>
+        private void CreateGridColumns()
+        {
+            dataGridView1.AutoGenerateColumns = false;
+
+            //Rows are added directly, so virtual mode must be off - it makes Rows.Add throw.
+            //It was set in the designer but had no effect while the grid was data bound.
+            dataGridView1.VirtualMode = false;
+
+            dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            dataGridView1.Columns.Clear();
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Id", HeaderText = "Id", ValueType = typeof(int), Visible = false, ReadOnly = true
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "DateTime", HeaderText = "DateTime", ValueType = typeof(DateTime),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "ResponseStatusCode", HeaderText = "ResponseStatusCode", ValueType = typeof(int),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None, Width = 35, MinimumWidth = 35, ReadOnly = true
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "UriHost", HeaderText = "UriHost", ValueType = typeof(string),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.NotSet, ReadOnly = true
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "UriAbsolutePath", HeaderText = "UriAbsolutePath", ValueType = typeof(string),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader, ReadOnly = true
+            });
+
+            //The only editable column.
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Note", HeaderText = "Note", ValueType = typeof(string),
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+            });
+
+            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Group", HeaderText = "Group", ValueType = typeof(string), Visible = false
+            });
+        }
+
+        /// <summary>
+        /// The rows currently passing the text and group filters, oldest first.
+        /// </summary>
+        private IEnumerable<SessionRow> FilteredRows()
+        {
+            IEnumerable<SessionRow> rows = allRows;
+
+            if (textFilter.Length > 0)
+            {
+                rows = rows.Where(r =>
+                    Contains(r.Note, textFilter) ||
+                    Contains(r.MethodAndHost, textFilter) ||
+                    Contains(r.Path, textFilter));
+            }
+
+            if (groupFilter.Length > 0)
+            {
+                rows = rows.Where(r => Contains(r.Group, groupFilter));
+            }
+
+            return rows;
+        }
+
+        private static bool Contains(string haystack, string needle)
+            => haystack is not null && haystack.Contains(needle, StringComparison.CurrentCultureIgnoreCase);
+
+        /// <summary>
+        /// Adds a newly saved session to the model and the grid.
+        /// </summary>
+        private void AppendSessionRow(Session session)
+        {
+            allRows.Add(SessionRow.From(session));
+            RefreshGrid();
+        }
+
+        //A request in flight is represented by a row in allRows carrying a negative id: the
+        //grid renders it like any other row, and nothing can mistake it for a stored session.
+        private int nextPendingId = -1;
+
+        //A fast request would only flash a row, so the placeholder appears once the request
+        //has taken longer than this, then ticks its elapsed time.
+        private const int PendingRowDelayMs = 750;
+        private const int PendingRowTickMs = 1000;
+
+        private static readonly Color PendingRowColor = Color.FromArgb(255, 248, 220);
+        private Font pendingRowFont;
+
+        /// <summary>
+        /// One request still waiting for a response.
+        /// </summary>
+        private sealed class PendingRequest
+        {
+            public SessionRow Row { get; init; }
+            public Stopwatch Elapsed { get; } = Stopwatch.StartNew();
+
+            /// <summary>Whether the placeholder made it into the grid before the response arrived.</summary>
+            public bool Shown { get; set; }
+            public bool Finished { get; set; }
+        }
+
+        /// <summary>
+        /// Registers a request that has just been sent, so a long running one becomes visible
+        /// in the grid instead of showing up only as a wait cursor.
+        /// </summary>
+        private PendingRequest BeginPendingRow(string httpMethod, Uri requestUri)
+        {
+            var pending = new PendingRequest
+            {
+                Row = new SessionRow
+                {
+                    Id = nextPendingId--,
+                    Timestamp = DateTime.Now,
+                    StatusCode = null,
+                    MethodAndHost = httpMethod + " " + requestUri.Host,
+                    Path = requestUri.AbsolutePath,
+                    Note = PendingNote(TimeSpan.Zero),
+                    Group = comboBox_group.Text,
+                    IsPending = true
+                }
+            };
+
+            //Deliberately not awaited - it runs alongside the request and ends with it.
+            _ = TrackPendingRow(pending);
+
+            return pending;
+        }
+
+        private static string PendingNote(TimeSpan elapsed)
+            => "pending... " + ((int)elapsed.TotalSeconds).ToString(CultureInfo.CurrentCulture) + " s";
+
+        /// <summary>
+        /// Shows the placeholder once the request turns out to be slow and keeps its elapsed
+        /// time ticking. Every await resumes on the UI thread through the WinForms
+        /// synchronization context, so the grid is only ever touched from there.
+        /// </summary>
+        private async Task TrackPendingRow(PendingRequest pending)
+        {
+            try
+            {
+                await Task.Delay(PendingRowDelayMs);
+
+                while (!pending.Finished)
+                {
+                    if (!pending.Shown)
+                    {
+                        pending.Shown = true;
+                        allRows.Add(pending.Row);
+                        RefreshGrid();
+                    }
+                    else
+                    {
+                        UpdatePendingNote(pending);
+                    }
+
+                    await Task.Delay(PendingRowTickMs);
                 }
             }
-            catch (Exception ex)
+            catch (ObjectDisposedException)
             {
-                MessageBox.Show(ex.Message);
+                //The form was closed while a request was still running.
+            }
+        }
+
+        /// <summary>
+        /// Drops the placeholder. Called from the request's finally block, and idempotent so a
+        /// request that failed early is not removed twice.
+        /// </summary>
+        private void EndPendingRow(PendingRequest pending)
+        {
+            if (pending is null || pending.Finished) return;
+
+            pending.Finished = true;
+            pending.Elapsed.Stop();
+
+            //Never made it into the grid - nothing to take back out.
+            if (!pending.Shown) return;
+
+            allRows.Remove(pending.Row);
+            RefreshGrid();
+        }
+
+        private void UpdatePendingNote(PendingRequest pending)
+        {
+            pending.Row.Note = PendingNote(pending.Elapsed.Elapsed);
+
+            //Only the one cell is rewritten - rebuilding the whole grid every second would
+            //fight with the user's scrolling and selection.
+            DataGridViewRow row = FindGridRow(pending.Row.Id);
+            if (row is null) return;
+
+            suppressNoteUpdates = true;
+            try { row.Cells["Note"].Value = pending.Row.Note; }
+            finally { suppressNoteUpdates = false; }
+        }
+
+        private DataGridViewRow FindGridRow(int id)
+        {
+            foreach (DataGridViewRow row in dataGridView1.Rows)
+            {
+                if (row.Cells["Id"].Value is int rowId && rowId == id) return row;
             }
 
-            dataGridView1.DataSource = dtSessions;
+            return null;
+        }
 
-            //Id
-            dataGridView1.Columns[0].Visible = false;
+        /// <summary>
+        /// Tints a placeholder row and locks its note - there is no session in the database
+        /// yet for an edit to be written to.
+        /// </summary>
+        private void StylePendingRow(DataGridViewRow row)
+        {
+            pendingRowFont ??= new Font(dataGridView1.Font, FontStyle.Italic);
 
-            //DateTime
-            dataGridView1.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            //dataGridView1.Columns[1].Width = 110;
-            //dataGridView1.Columns[1].MinimumWidth = 110;
-            dataGridView1.Columns[1].ReadOnly = true;
+            row.DefaultCellStyle.BackColor = PendingRowColor;
+            row.DefaultCellStyle.SelectionBackColor = PendingRowColor;
+            row.DefaultCellStyle.SelectionForeColor = SystemColors.WindowText;
+            row.DefaultCellStyle.Font = pendingRowFont;
 
-            //ResponseStatusCode
-            dataGridView1.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-            dataGridView1.Columns[2].Width = 35;
-            dataGridView1.Columns[2].MinimumWidth = 35;
-            dataGridView1.Columns[2].ReadOnly = true;
+            row.Cells["Note"].ReadOnly = true;
+        }
 
-            //Method
-            //dataGridView1.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
-            //dataGridView1.Columns[3].ReadOnly = true;
+        /// <summary>
+        /// Rebuilds the visible grid rows from <see cref="allRows"/> and the active filters.
+        /// </summary>
+        private void RefreshGrid()
+        {
+            //Populating rows raises CellValueChanged for every cell - none of it is a user edit.
+            suppressNoteUpdates = true;
 
-            //UriHost
-            dataGridView1.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.NotSet;
-            dataGridView1.Columns[3].ReadOnly = true;
-            dataGridView1.Columns[3].Width = _settings.dataGridView1_col3_width;
+            //Clearing the rows moves the current cell to the top, and the sync repaints the grid
+            //while the user is reading. Reloading the panes from under them is not acceptable, so
+            //RowEnter is muted here and the row that was current is put back afterwards.
+            suppressRowEnterDisplay = true;
 
-            //UriAbsolutePath
-            dataGridView1.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
-            dataGridView1.Columns[4].ReadOnly = true;
-       
-            //Note
-            dataGridView1.Columns[5].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            int currentId = dataGridView1.CurrentRow?.Cells["Id"].Value as int? ?? 0;
+            int currentIndex = dataGridView1.CurrentCell?.RowIndex ?? 0;
 
-            //Group
-            dataGridView1.Columns[6].Visible = false;
+            dataGridView1.SuspendLayout();
 
+            DataGridViewRow restored;
 
-            dataGridView1.ResumeLayout();
+            try
+            {
+                dataGridView1.Rows.Clear();
 
-            await LoadGroups();
+                foreach (SessionRow r in FilteredRows())
+                {
+                    int index = dataGridView1.Rows.Add(r.Id, r.Timestamp, r.StatusCode, r.MethodAndHost, r.Path, r.Note, r.Group);
 
-            //Scroll down to the newest record
-            if (dataGridView1.RowCount > 0) dataGridView1.FirstDisplayedScrollingRowIndex = dataGridView1.RowCount - 1;
+                    if (r.IsPending) StylePendingRow(dataGridView1.Rows[index]);
+                }
 
-            //Select a new row
-            if (dataGridView1.RowCount > 0) dataGridView1.Rows[dataGridView1.Rows.Count - 1].Selected = true;
+                //Applied here rather than in CreateGridColumns: the saved width is not known
+                //until a settings profile has been loaded.
+                dataGridView1.Columns["UriHost"].Width = _settings.DataGridViewCol3Width;
 
+                restored = FindGridRow(currentId);
 
-            //display content of the newly saved session
-            if (dataGridView1.RowCount > 0) await DisplaySession(dataGridView1.Rows.Count - 1);
+                if (restored is not null)
+                {
+                    dataGridView1.ClearSelection();
+                    dataGridView1.CurrentCell = restored.Cells[dataGridView1.Columns["Note"].Index];
+                    restored.Selected = true;
+                }
+            }
+            finally
+            {
+                dataGridView1.ResumeLayout();
+                suppressNoteUpdates = false;
+                suppressRowEnterDisplay = false;
+            }
 
-            CursorWait(false);
+            //The row that was current is gone - filtered out, deleted here, or deleted by another
+            //instance. Move to where it was and let RowEnter load whatever is there now.
+            if (restored is null && dataGridView1.RowCount > 0)
+            {
+                int index = Math.Clamp(currentIndex, 0, dataGridView1.RowCount - 1);
+
+                dataGridView1.ClearSelection();
+                dataGridView1.CurrentCell = dataGridView1.Rows[index].Cells[dataGridView1.Columns["Note"].Index];
+                dataGridView1.Rows[index].Selected = true;
+            }
         }
 
         private async Task LoadGroups()
         {
             try
             {
-                await sessionsConn.CreateTableAsync<Session>();
+                if (sessionsConn is null) return;
 
-                AsyncTableQuery<Session> query = sessionsConn.Table<Session>();
-                var sessions = await query.ToListAsync();
+                //Only the group names, not every session that carries one.
+                var rows = await sessionsConn.RawRowsAsync(
+                    "select distinct \"Group\" from Session where Deleted = 0 and \"Group\" is not null and \"Group\" <> ''");
 
                 comboBox_group.Items.Clear();
-                comboBox_group.Items.Insert(0, "");
+                comboBox_group.Items.Add("");
 
                 comboBox_filter_group.Items.Clear();
-                comboBox_filter_group.Items.Insert(0, "");
+                comboBox_filter_group.Items.Add("");
 
-
-                foreach (Session s in sessions)
+                foreach (string group in rows.Select(r => SqliteStore.AsString(r[0]))
+                                             .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase))
                 {
-                    if ((s.Group != null) && (!comboBox_group.Items.Contains(s.Group))) comboBox_group.Items.Add(s.Group);
-                    if ((s.Group != null) && (!comboBox_filter_group.Items.Contains(s.Group))) comboBox_filter_group.Items.Add(s.Group);
+                    comboBox_group.Items.Add(group);
+                    comboBox_filter_group.Items.Add(group);
                 }
             }
             catch (Exception ex)
@@ -223,47 +629,56 @@ namespace ApiTester
 
         private async void Button_request_send_Click(object sender, EventArgs e)
         {
-            SendRequestConsolidate();
+            await SendRequestConsolidate();
         }
 
-        private void DataGridView1_KeyDown(object sender, KeyEventArgs e)
+        private async void DataGridView1_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.R) SendRequestConsolidate();
+            //Ctrl+R, so that typing an "r" into a cell does not fire a request.
+            if (e.KeyCode == Keys.R && e.Control)
+            {
+                e.Handled = true;
+                await SendRequestConsolidate();
+            }
         }
 
-        public async void SendRequestConsolidate()
+        public async Task SendRequestConsolidate()
         {
-            //Works only when MaxDegreeOfParallelism = 1 - need to separate actual call from UI
-            //var options = new ParallelOptions()
-            //{
-            //    MaxDegreeOfParallelism = 1
-            //};
-
-            //Parallel.For(0, Convert.ToInt32(numericUpDown_request.Text), options, (i) =>
-            //{
-            //    SendRequest();
-            //});
+            if (!int.TryParse(toolStripTextBox_repeat.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out int repeat) || repeat < 1)
+            {
+                MessageBox.Show("Repeat must be a whole number of at least 1.");
+                return;
+            }
 
             CursorWait(true);
 
-            for (int y = 0; y < Convert.ToInt32(toolStripTextBox_repeat.Text); y++)
+            try
             {
-                await SendRequest(
-                    textBox_request_body.Text,
-                    textBox_request_headers.Text,
-                    comboBox_http_method.Text,
-                    textBox_request_url.Text,
-                    toolStripComboBox_http_version.Text,
-                    comboBox_certificates.Text
-                    );
+                for (int y = 0; y < repeat; y++)
+                {
+                    await SendRequest(
+                        textBox_request_body.Text,
+                        textBox_request_headers.Text,
+                        comboBox_http_method.Text,
+                        textBox_request_url.Text,
+                        toolStripComboBox_http_version.Text,
+                        comboBox_certificates.Text
+                        );
+                }
             }
-
-            CursorWait(false);
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            finally
+            {
+                CursorWait(false);
+            }
         }
 
-        public async Task LoadCertificates()
+        public void LoadCertificates()
         {
-            X509Store store = new(StoreName.My, StoreLocation.CurrentUser);
+            using X509Store store = new(StoreName.My, StoreLocation.CurrentUser);
 
             store.Open(OpenFlags.ReadOnly);
 
@@ -275,52 +690,117 @@ namespace ApiTester
 
         private async void DataGridView1_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
         {
+            //The rows are removed from allRows and the grid is rebuilt from that, so the grid
+            //must not delete the row itself - it would be removing a row that is already gone.
+            e.Cancel = true;
+
             CursorWait(true);
 
-            foreach (DataGridViewRow row in dataGridView1.SelectedRows)
+            try
             {
-                if (dataGridView1.SelectedRows.Count > 0)
+                //Snapshot the rows first - deleting rebuilds the grid's row collection.
+                var selected = dataGridView1.SelectedRows.Cast<DataGridViewRow>().ToList();
+                if (selected.Count == 0 && e.Row is not null) selected.Add(e.Row);
+                if (selected.Count == 0) return;
+
+                //Selection lands just above the topmost row that goes away, rather than
+                //jumping back to the top of the table.
+                int previous = selected.Min(row => row.Index) - 1;
+
+                //A negative id is a request still in flight, not a stored session - there is
+                //nothing to delete, and the placeholder goes away when the request finishes.
+                var ids = selected
+                    .Select(row => row.Cells["Id"].Value)
+                    .OfType<int>()
+                    .Where(id => id > 0)
+                    .ToList();
+
+                if (ids.Count == 0) return;
+
+                foreach (int id in ids)
                 {
-                    DeleteSession((int)row.Cells[0].Value);
-                    Thread.Sleep(10);
+                    await DeleteSession(id);
                 }
+
+                await SelectGridRow(previous);
             }
-            CursorWait(false);
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            finally
+            {
+                CursorWait(false);
+            }
+        }
+
+        /// <summary>
+        /// Moves the current row, clamped to the rows that are actually there, and displays it.
+        /// </summary>
+        private async Task SelectGridRow(int index)
+        {
+            if (dataGridView1.RowCount == 0) return;
+
+            index = Math.Clamp(index, 0, dataGridView1.RowCount - 1);
+
+            //Rebuilding the grid already put the current cell on the first row, so moving it
+            //raises RowEnter, which displays the session. When the target is that same row
+            //nothing changes and the session has to be displayed here instead.
+            bool alreadyCurrent = dataGridView1.CurrentCell?.RowIndex == index;
+
+            dataGridView1.ClearSelection();
+
+            //Setting the current cell scrolls it into view; Note is always visible.
+            dataGridView1.CurrentCell = dataGridView1.Rows[index].Cells[dataGridView1.Columns["Note"].Index];
+            dataGridView1.Rows[index].Selected = true;
+
+            if (alreadyCurrent) await DisplaySession(index);
         }
 
         private async Task DeleteSession(int Id)
         {
             try
             {
-                //Delete from settingsConn
-                var query = sessionsConn.Table<Session>().Where(s => s.Id == Id);
-                var session = await query.FirstOrDefaultAsync();
-                if (session != null)
+                if (SyncConfigured)
                 {
-                    await sessionsConn.DeleteAsync(session);
-                    int localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
-                    await sessionsConn.ExecuteAsync($"pragma user_version = " + (localVersion + 1) + ";");
+                    //Kept as a tombstone until the container has taken the delete, so the other
+                    //instances get told about it. Hidden from the grid in the meantime.
+                    await sessionsConn.ExecuteAsync(
+                        "update Session set Deleted = 1, Dirty = 1, UpdatedUtc = $now where Id = $id",
+                        ("$now", SyncRow.NowUtc()), ("$id", Id));
+
+                    RequestSync();
+                }
+                else
+                {
+                    await sessionsConn.DeleteAsync<Session>(Id);
                 }
 
-                //Delete from datagrid
-                foreach (DataRow dr in dtSessions.Rows)
-                {
-                    if (dr["Id"].ToString() == Id.ToString())
-                        dr.Delete();
-                }
+                //Drop it from the model; the grid is rebuilt from that.
+                allRows.RemoveAll(r => r.Id == Id);
+                RefreshGrid();
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
-                CursorWait(false);
             }
         }
 
         private async void DataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex > 0)
+            //Row 0 is a real session, not a header - it must display like any other.
+            if (e.RowIndex < 0) return;
+
+            //Repainting the grid moves the current cell; that is not the user changing rows.
+            if (suppressRowEnterDisplay) return;
+
+            try
             {
                 await DisplaySession(e.RowIndex);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
         }
 
@@ -328,7 +808,7 @@ namespace ApiTester
         {
             foreach (var cert in store.Certificates)
                 if (cert.SubjectName.Name.Equals(subject,
-                    StringComparison.CurrentCultureIgnoreCase))
+                    StringComparison.OrdinalIgnoreCase))
                     return cert;
             return null;
         }
@@ -338,7 +818,9 @@ namespace ApiTester
         {
             if (this.dataGridView1.Columns["ResponseStatusCode"].Index == e.ColumnIndex && e.RowIndex >= 0)
             {
-                if (((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value >= 100) && ((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value < 300))
+                if (dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value is not int statusCode) return;
+
+                if ((statusCode >= 100) && (statusCode < 300))
                 {
                     e.CellStyle.BackColor = Color.Green;
                     e.CellStyle.ForeColor = Color.White;
@@ -346,7 +828,7 @@ namespace ApiTester
                     e.CellStyle.SelectionForeColor = Color.White;
                 }
 
-                if (((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value >= 300) && ((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value < 400))
+                if ((statusCode >= 300) && (statusCode < 400))
                 {
                     e.CellStyle.BackColor = Color.YellowGreen;
                     e.CellStyle.ForeColor = Color.White;
@@ -354,7 +836,7 @@ namespace ApiTester
                     e.CellStyle.SelectionForeColor = Color.White;
                 }
 
-                if (((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value >= 400) && ((int)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value < 600))
+                if ((statusCode >= 400) && (statusCode < 600))
                 {
                     e.CellStyle.BackColor = Color.Red;
                     e.CellStyle.ForeColor = Color.White;
@@ -362,12 +844,6 @@ namespace ApiTester
                     e.CellStyle.SelectionForeColor = Color.White;
                 }
             }
-
-            //if (e.ColumnIndex >= 0 && e.RowIndex >= 0 && this.dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected)
-            //{
-            //    e.CellStyle.SelectionForeColor = e.CellStyle.ForeColor;
-            //    e.CellStyle.SelectionBackColor = e.CellStyle.BackColor;
-            //}
         }
 
         /// <summary>
@@ -375,37 +851,43 @@ namespace ApiTester
         /// </summary>
         private async void DataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0)
+            if (e.RowIndex < 0) return;
+
+            //Fires for programmatic writes too - saving the group edit here would store the
+            //group name as the note.
+            if (suppressNoteUpdates) return;
+            if (e.ColumnIndex != dataGridView1.Columns["Note"].Index) return;
+
+            try
             {
-                string clickedId = dataGridView1.Rows[e.RowIndex].Cells["Id"].Value.ToString();
+                int clickedId = Convert.ToInt32(dataGridView1.Rows[e.RowIndex].Cells["Id"].Value, CultureInfo.InvariantCulture);
 
-                Session session = new();
-                try
-                {
-                    var query = sessionsConn.Table<Session>().Where(s => s.Id.Equals(clickedId));
-                    session = await query.FirstAsync();
+                Session session = await sessionsConn.FindAsync<Session>(clickedId);
+                if (session is null) return;
 
-                    session.Note = (string)dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+                session.Note = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value as string;
+                session.UpdatedUtc = SyncRow.NowUtc();
+                session.Dirty = true;
 
-                    await sessionsConn.UpdateAsync(session);
-                    int localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
-                    await sessionsConn.ExecuteAsync($"pragma user_version = " + (localVersion + 1) + ";");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
-                }
+                await sessionsConn.UpdateAsync(session);
+
+                //Keep the model in step - the grid is rebuilt from it, and a repaint would
+                //otherwise put the old note back.
+                foreach (SessionRow r in allRows.Where(r => r.Id == clickedId)) r.Note = session.Note;
+
+                RequestSync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
         }
 
 
 
-        private async void SaveSplitterData()
+        private async Task SaveSplitterData()
         {
-            //_settings.splitContainer6 = splitContainer6_main_right.SplitterDistance;
             _settings.splitContainer5 = splitContainer5_reqres.SplitterDistance;
-            //_settings.splitContainer3 = splitContainer4.SplitterDistance;
-            //_settings.splitContainer2 = splitContainer2_request.SplitterDistance;
             _settings.splitContainer1 = splitContainer1_main_form.SplitterDistance;
 
             _settings.LocationX = Location.X;
@@ -414,25 +896,31 @@ namespace ApiTester
             _settings.SizeWidth = Size.Width;
 
 
-            _settings.dataGridView1_col3_width = dataGridView1.Columns[3].Width;
+            _settings.DataGridViewCol3Width = dataGridView1.Columns.Count > 3
+                ? dataGridView1.Columns[3].Width
+                : _settings.DataGridViewCol3Width;
 
-            await settingsConn.UpdateAsync(_settings);
+            if (_settings.Id != 0) await settingsConn.UpdateAsync(_settings);
         }
 
         private void ApplySavedSplitterData()
         {
-
             Location = new Point(_settings.LocationX, _settings.LocationY);
             Size = new Size(_settings.SizeWidth, _settings.SizeHeight);
 
-            //splitContainer6_main_right.SplitterDistance = _settings.splitContainer6;
-            splitContainer5_reqres.SplitterDistance = _settings.splitContainer5;
-            //splitContainer4.SplitterDistance = _settings.splitContainer3;
-            //splitContainer2_request.SplitterDistance = _settings.splitContainer2;
-            splitContainer1_main_form.SplitterDistance = _settings.splitContainer1;
+            //A saved distance from a larger window can exceed the current bounds.
+            SetSplitterDistance(splitContainer5_reqres, _settings.splitContainer5);
+            SetSplitterDistance(splitContainer1_main_form, _settings.splitContainer1);
+        }
 
-            //not initialized here yet
-            //dataGridView1.Columns[3].Width = _settings.dataGridView1_col3_width;
+        private static void SetSplitterDistance(SplitContainer container, int distance)
+        {
+            int span = container.Orientation == Orientation.Vertical ? container.Width : container.Height;
+            int max = span - container.Panel2MinSize - container.SplitterWidth;
+
+            if (max <= container.Panel1MinSize) return;
+
+            container.SplitterDistance = Math.Clamp(distance, container.Panel1MinSize, max);
         }
 
 
@@ -440,8 +928,8 @@ namespace ApiTester
 
         private void Button_text_utils_Click(object sender, EventArgs e)
         {
-            Form_text_utils form_Text_Utils = new();
-            form_Text_Utils.ShowDialog();
+            using TextUtilsForm textUtils = new();
+            textUtils.ShowDialog();
         }
 
         private readonly TextStyle primary = new(Brushes.Brown, null, FontStyle.Regular);
@@ -469,12 +957,10 @@ namespace ApiTester
         //makes link in the response headers clickable
         private bool CharIsHyperlink(Place place)
         {
-            var mask = textBox_response_headers.GetStyleIndexMask(new Style[] { blueStyle });
-            if (place.iChar < textBox_response_headers.GetLineLength(place.iLine))
-                if ((textBox_response_headers[place].style & mask) != 0)
-                    return true;
+            if (place.iLine < 0 || place.iLine >= textBox_response_headers.LinesCount) return false;
+            if (place.iChar >= textBox_response_headers.GetLineLength(place.iLine)) return false;
 
-            return false;
+            return textBox_response_headers.GetStylesOfChar(place).Contains(blueStyle);
         }
 
         private void TextBox_response_headers_MouseMove(object sender, MouseEventArgs e)
@@ -489,10 +975,22 @@ namespace ApiTester
         private void TextBox_response_headers_MouseDown(object sender, MouseEventArgs e)
         {
             var p = textBox_response_headers.PointToPlace(e.Location);
-            if (CharIsHyperlink(p))
+            if (!CharIsHyperlink(p)) return;
+
+            var url = textBox_response_headers.GetRange(p, p).GetFragment(@"[\S]").Text;
+
+            //The URL comes from a server controlled response header - only hand http(s) to the shell.
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri)) return;
+            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return;
+
+            try
             {
-                var url = textBox_response_headers.GetRange(p, p).GetFragment(@"[\S]").Text;
-                System.Diagnostics.Process.Start(url);
+                //UseShellExecute defaults to false on .NET Core, which cannot launch a URL.
+                Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                MessageBox.Show("Could not open " + uri.AbsoluteUri + "\n\n" + ex.Message);
             }
         }
 
@@ -516,107 +1014,94 @@ namespace ApiTester
             textBox_request_url.Clear();
             textBox_response_body.Clear();
             textBox_response_headers.Clear();
-            //comboBox_certificates.Items.Clear();
         }
 
-        
+
 
         private async void Button_saveGroup_Click(object sender, EventArgs e)
         {
-            //updatovat aktuálně zobrazenou session v settingsConn
-            int Id = Convert.ToInt32(label_displayed_Id.Text);
-            string group = comboBox_group.Text;
-
-            var query = sessionsConn.Table<Session>().Where(s => s.Id == Id);
-            var session = await query.FirstAsync();
-
-            if (session != null) session.Group = group;
-
-            await sessionsConn.UpdateAsync(session);
-            int localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
-            await sessionsConn.ExecuteAsync($"pragma user_version = " + (localVersion + 1) + ";");
-
-
-            //update datagridview
-            foreach (DataRow dr in dtSessions.Rows)
+            try
             {
-                if (dr["Id"].ToString() == Id.ToString())
-                    dr["Group"] = group;
-            }
+                if (!int.TryParse(label_displayed_Id.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int Id))
+                {
+                    MessageBox.Show("Select a session first.");
+                    return;
+                }
 
-            LoadGroups();
+                string group = comboBox_group.Text;
+
+                var session = await sessionsConn.FindAsync<Session>(Id);
+
+                if (session is null) return;
+
+                session.Group = group;
+                session.UpdatedUtc = SyncRow.NowUtc();
+                session.Dirty = true;
+
+                await sessionsConn.UpdateAsync(session);
+
+                RequestSync();
+
+                //Update the model and repaint. RefreshGrid suppresses note persistence while
+                //it populates, so this cannot be mistaken for the user editing the note column.
+                foreach (SessionRow r in allRows.Where(r => r.Id == Id)) r.Group = group;
+                RefreshGrid();
+
+                await LoadGroups();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
+        //Filtering is plain string matching over the model. The old DataView.RowFilter took a
+        //SQL-ish expression, which meant escaping user input to avoid a syntax error on a quote.
         private void TextBox_filter_TextChanged(object sender, EventArgs e)
         {
-            if (textBox_filter.Text.Length > 0)
-            {
-                // dtSessions.DefaultView.RowFilter = string.Format("[{0}] LIKE '%{1}%'", "Note", textBox_filter.Text);
-                dtSessions.DefaultView.RowFilter = "Note LIKE '%" + textBox_filter.Text.Trim() + "%' OR UriHost LIKE '%" + textBox_filter.Text.Trim() + "%' OR UriAbsolutePath LIKE '%" + textBox_filter.Text.Trim() + "%'";
-            }
-            else
-            {
-                dtSessions.DefaultView.RowFilter = String.Empty;
-            }
+            textFilter = textBox_filter.Text.Trim();
+            RefreshGrid();
         }
+
         private void ComboBox_filter_group_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (comboBox_filter_group.Text.Length > 0)
-            {
-                dtSessions.DefaultView.RowFilter = "Group LIKE '%" + comboBox_filter_group.Text.Trim() + "%'";
-            }
-            else
-            {
-                dtSessions.DefaultView.RowFilter = String.Empty;
-            }
+            groupFilter = comboBox_filter_group.Text.Trim();
+            RefreshGrid();
         }
 
+        /// <summary>
+        /// Syncs on demand. The same work the app does by itself - the button is for when the
+        /// user wants to watch it happen, or to retry after a failure.
+        /// </summary>
         private async void button_blob_Click(object sender, EventArgs e)
         {
-            listBox_blob.Items.Clear();
+            CursorWait(true);
 
-
-            FileInfo localdb = new FileInfo(_settings.Endpoint);
-
-            //get version of db in Azure Blob
-            int blobVersion = GetBlobVersion(localdb.Name);
-            listBox_blob.Items.Add("blobVersion: " + blobVersion.ToString());
-
-            //Read user_version pragma from local db
-            var localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
-            listBox_blob.Items.Add("localVersion: " + localVersion.ToString());
-            await sessionsConn.CloseAsync();
-
-            if (blobVersion < localVersion)  //upload local file to blob
+            try
             {
-                listBox_blob.Items.Add("Local db will be uploaded to blob.");
-                await BlobUpload(localdb.FullName, localVersion);
-                listBox_blob.Items.Add("Local uploaded to blob: " + localdb.FullName);
-
+                await SyncNow(verbose: true);
             }
-            else if (blobVersion > localVersion)  //download file from blob to local
+            finally
             {
-                listBox_blob.Items.Add("Db from Azure blob will be downloaded.");
-
-                string newname = localdb.FullName + "_" + DateTime.Now.ToFileTime();
-                File.Move(localdb.FullName, newname);
-                listBox_blob.Items.Add("Local db renamed to: " + newname);
-
-                await BlobDownload(localdb.Name, localdb.FullName);
-                listBox_blob.Items.Add("Blob downloaded as: " + localdb.Name);
-
+                CursorWait(false);
             }
-
-            LoadSessions();
         }
 
         private async void button_blob_list_Click(object sender, EventArgs e)
         {
-            GetBlobList();
+            try
+            {
+                if (!BlobConfigured(complain: true)) return;
 
-            var localVersion = Convert.ToInt32(await sessionsConn.ExecuteScalarAsync<int>("pragma user_version;"));
-            listBox_blob.Items.Insert(0, "Local version: " + localVersion.ToString());
+                //Reports this instance's own id, which lives in the local sync tables.
+                await EnsureSyncSchema();
 
+                await GetBlobList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void dataGridView1_RowContextMenuStripNeeded(object sender, DataGridViewRowContextMenuStripNeededEventArgs e)
@@ -634,43 +1119,71 @@ namespace ApiTester
         private async void CopyToToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             await copySessionToNewProfile(e);
-
         }
 
         private async Task copySessionToNewProfile(ToolStripItemClickedEventArgs e)
         {
-            //get target profile
-            Setting targetProfile = new();
-
-            AsyncTableQuery<Setting> query;
-
             try
             {
-                await settingsConn.CreateTableAsync<Setting>();
+                if (!int.TryParse(e.ClickedItem.Name, NumberStyles.Integer, CultureInfo.InvariantCulture, out int selectedId)) return;
 
-                int selectedId = Convert.ToInt32(e.ClickedItem.Name);
+                //get target profile
+                await settingsConn.EnsureTableAsync<Setting>();
+                Setting targetProfile = await settingsConn.FindAsync<Setting>(selectedId);
 
-                query = settingsConn.Table<Setting>().Where(s => s.Id == selectedId);
-                targetProfile = await query.FirstAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+                if (targetProfile is null || string.IsNullOrWhiteSpace(targetProfile.Endpoint))
+                {
+                    MessageBox.Show("The selected profile has no database configured.");
+                    return;
+                }
 
+                //get selected session
+                if (dataGridView1.CurrentRow?.Cells["Id"].Value is not int Id)
+                {
+                    MessageBox.Show("Select a session first.");
+                    return;
+                }
 
-            //get selected session
-            int Id = (int)dataGridView1.CurrentRow.Cells["Id"].Value;
+                if (Id < 0)
+                {
+                    MessageBox.Show("That request has not finished yet.");
+                    return;
+                }
 
-            var query1 = sessionsConn.Table<Session>().Where(s => s.Id == Id);
-            var session = await query1.FirstOrDefaultAsync();
+                var session = await sessionsConn.FindAsync<Session>(Id);
+                if (session is null) return;
 
-            //save session to the target profile
-            try
-            {
-                //session.id = session.sqliteId.ToString();
-                sessionsConn = new SQLiteAsyncConnection(targetProfile.Endpoint);
-                await sessionsConn.InsertAsync(session);
+                CursorWait(true);
+
+                //Write through a separate connection. Reassigning sessionsConn would silently
+                //point the whole app at the other profile's database.
+                var targetConn = new SqliteStore(targetProfile.Endpoint);
+
+                try
+                {
+                    await targetConn.EnsureTableAsync<Session>();
+
+                    //Let the target assign its own key, otherwise the copy collides with an
+                    //existing row of the same id.
+                    session.Id = 0;
+
+                    //A copy is a session of its own, and the target profile has not published it.
+                    //Its own instance picks it up the next time that profile is opened.
+                    session.Uid = NewUid();
+                    session.UpdatedUtc = SyncRow.NowUtc();
+                    session.Dirty = true;
+                    session.Uploaded = false;
+                    session.Deleted = false;
+
+                    await targetConn.InsertAsync(session);
+                }
+                finally
+                {
+                    await targetConn.CloseAsync();
+                }
+
+                CursorWait(false);
+                MessageBox.Show("Session copied to profile \"" + targetProfile.ProfileName + "\".");
             }
             catch (Exception ex)
             {

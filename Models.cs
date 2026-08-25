@@ -1,4 +1,3 @@
-﻿using SQLite;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,13 +14,6 @@ namespace ApiTester
         public string Subject { get; set; }
         public string Issuer { get; set; }
         public bool IsValid { get; set; }
-    }
-
-    public class Meta
-    {
-        [PrimaryKey, AutoIncrement]
-        public int Id { get; set; }
-        public int DbVersion { get; set; } = 0;
     }
 
     public class RequestTelemetry
@@ -55,11 +47,22 @@ namespace ApiTester
         public DateTime RequestLeftQueue { get; set; }
 
         public DateTime ConnectionClosed { get; set; }
+
+        /// <summary>
+        /// Milliseconds between two telemetry timestamps. Not every stage fires on every
+        /// request - a pooled connection skips DNS, TCP and TLS entirely - so an unset
+        /// endpoint reports 0 rather than a duration measured against a stale timestamp.
+        /// </summary>
+        public static double Duration(DateTime start, DateTime stop)
+        {
+            if (start == default || stop == default || stop < start) return 0;
+
+            return (stop - start).TotalMilliseconds;
+        }
     }
 
     public class Setting
     {       
-        [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
         public string Endpoint { get; set; }
         public bool Selected { get; set; }
@@ -78,12 +81,45 @@ namespace ApiTester
         public string BlobStorageAccount { get; set; }
         public string BlobContainer { get; set; }
 
-        public int dataGridView1_col3_width { get; set; } = 350;
+        /// <summary>
+        /// The storage account's access key, base64. Fallback authentication for networks whose
+        /// proxy rewrites URLs and thereby invalidates a SAS - Shared Key travels in the
+        /// Authorization header. It grants full control of the account, not just the container,
+        /// so prefer a SAS anywhere it works.
+        /// </summary>
+        public string BlobAccountKey { get; set; }
+
+        /// <summary>
+        /// Passphrase the sync encrypts with. Empty means the container holds plain sessions.
+        /// Every instance sharing a container needs the same one, or they cannot read what the
+        /// others publish. See docs/blob-sync.md.
+        /// </summary>
+        public string BlobEncryptionKey { get; set; }
+
+        /// <summary>
+        /// When true, sessions sync to the configured Azure DevOps git repository instead of the
+        /// blob container. Encryption is mandatory there - DevOpsSync refuses to run without a
+        /// key - because a git repository is readable by its whole project team, not just
+        /// whoever holds a token.
+        /// </summary>
+        public bool SyncWithDevOps { get; set; }
+
+        /// <summary>Personal access token for the DevOps repository. Needs Code (read & write).</summary>
+        public string DevOpsPat { get; set; }
+
+        /// <summary>"host/projects/{teamProject}/_git/{repo}" - exactly as in the repo's URL.</summary>
+        public string DevOpsRepo { get; set; }
+
+        /// <summary>Branch the sync reads and commits to.</summary>
+        public string DevOpsBranch { get; set; } = "main";
+
+        //Column name is pinned so the rename does not orphan the existing stored value.
+        [ColumnName("dataGridView1_col3_width")]
+        public int DataGridViewCol3Width { get; set; } = 350;
     }
 
     public class Session
     {
-        [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
         public string DateTime { get; set; }
         public string UriAbsoluteUri { get; set; }
@@ -118,5 +154,31 @@ namespace ApiTester
         public double DurationResponseHeaders { get; set; }
         public double DurationResponseContent { get; set; }
 
+        //--- Blob sync. See docs/blob-sync.md.
+
+        /// <summary>
+        /// Identifies the session across instances, and names its blob. The primary key cannot
+        /// be used for either: every instance assigns its own.
+        /// </summary>
+        public string Uid { get; set; }
+
+        /// <summary>
+        /// ISO-8601 UTC of the last change to <see cref="Note"/> or <see cref="Group"/> - the
+        /// only fields that can be edited, and so the only ones two instances can disagree on.
+        /// The later timestamp wins.
+        /// </summary>
+        public string UpdatedUtc { get; set; }
+
+        /// <summary>Has a change that the container has not accepted yet.</summary>
+        public bool Dirty { get; set; }
+
+        /// <summary>The row's blob exists in the container.</summary>
+        public bool Uploaded { get; set; }
+
+        /// <summary>
+        /// Deleted locally, kept until the blob is gone too. Rows in this state are hidden
+        /// from the grid.
+        /// </summary>
+        public bool Deleted { get; set; }
     }
 }
