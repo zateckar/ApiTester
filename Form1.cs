@@ -30,6 +30,16 @@ namespace ApiTester
         //binding throws NotSupportedException once the app is trimmed, which Native AOT
         //implies, so this list is the source of truth and the grid is a view over it.
         private readonly List<SessionRow> allRows = new();
+
+        //What CellValueNeeded serves. Built by RefreshView out of allRows, the filters, and
+        //the view toggles; the grid holds no rows of its own.
+        private List<SessionRow> viewRows = new();
+
+        //The request payload per session id, loaded once per duplicates-view session and held
+        //until any session changes. Request bodies and headers are too heavy to keep in the
+        //row model permanently just in case the view is opened.
+        private Dictionary<int, (string Query, string Headers, string Body)> duplicatesKeys;
+
         private string textFilter = string.Empty;
         private string groupFilter = string.Empty;
 
@@ -45,7 +55,12 @@ namespace ApiTester
             //column has to stay empty rather than read as an HTTP 0.
             public int? StatusCode { get; init; }
             public string MethodAndHost { get; init; }
+
+            //The host on its own - MethodAndHost is for display, and grouping needs the
+            //host without the method when the path is empty.
+            public string Host { get; init; }
             public string Path { get; init; }
+
             public string Note { get; set; }
             public string Group { get; set; }
 
@@ -53,6 +68,28 @@ namespace ApiTester
             /// A placeholder for a request that has not come back yet, not a stored session.
             /// </summary>
             public bool IsPending { get; init; }
+
+            /// <summary>Not a session at all - a label row naming a group of sessions.</summary>
+            public bool IsGroupHeader { get; init; }
+
+            /// <summary>Header text's tail: the computed key; the count is tacked on at render.</summary>
+            public int GroupCount { get; init; }
+
+            //Grouping by URL is purely a view concern, and SessionRow is the grid's view model:
+            //the prefix the group's header already shows, so the row displays only the rest.
+            public string PathPrefixStripped { get; set; }
+
+            //Recomputed by RefreshView: the path column as rendered, prefix stripped if the
+            //row's group header already shows it. Precomputed because CellValueNeeded serves
+            //it over and over while a cell is in view.
+            public string DisplayPath { get; set; }
+
+            //Header rows render the group key and count where sessions show method + host.
+            public string DisplayMethodAndHost { get; set; }
+
+            //Timestamp is object because Stamp keeps the raw string when parsing fails; sorting
+            //needs a real date either way, so unparsed values collapse to the minimum.
+            public DateTime SortStamp => Timestamp is DateTime stamp ? stamp : DateTime.MinValue;
 
             public static SessionRow From(Session s)
             {
@@ -62,6 +99,7 @@ namespace ApiTester
                     Timestamp = Stamp(s.DateTime),
                     StatusCode = s.ResponseStatusCode,
                     MethodAndHost = s.Method + " " + s.UriHost,
+                    Host = s.UriHost,
                     Path = s.UriAbsolutePath,
                     Note = s.Note,
                     Group = s.Group
@@ -81,6 +119,7 @@ namespace ApiTester
                     Timestamp = Stamp(SqliteStore.AsString(values[1])),
                     StatusCode = SqliteStore.AsInt(values[2]),
                     MethodAndHost = SqliteStore.AsString(values[3]) + " " + SqliteStore.AsString(values[4]),
+                    Host = SqliteStore.AsString(values[4]),
                     Path = SqliteStore.AsString(values[5]),
                     Note = SqliteStore.AsString(values[6]),
                     Group = SqliteStore.AsString(values[7])
@@ -92,6 +131,107 @@ namespace ApiTester
                 => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsed)
                     ? parsed
                     : value;
+        }
+
+        //A path segment that names an API version - /v0/, /v12/, case-insensitive. Two requests
+        //whose paths differ only below such a segment are versions of the same group.
+        private static readonly System.Text.RegularExpressions.Regex VersionSegment =
+            new("^v\\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// What a session groups under when "Group by URL" is on: the path, cut just below the
+        /// first version segment so /api/v1/users/1 and /api/v1/users/2 share a key. Paths
+        /// without a version segment group by the full path, and an empty path by the host -
+        /// there is nothing more specific to group them by. The query never takes part.
+        /// </summary>
+        private static string GroupKey(string host, string path)
+        {
+            if (string.IsNullOrEmpty(path) || path == "/") return host ?? string.Empty;
+
+            //Find where the version segment ends; everything from there on is per-request.
+            int searchFrom = 0;
+
+            foreach (string segment in path.Split('/'))
+            {
+                if (VersionSegment.IsMatch(segment))
+                {
+                    int end = searchFrom + segment.Length;
+                    return path.Substring(0, end);
+                }
+
+                searchFrom += segment.Length + 1;
+            }
+
+            return path;
+        }
+
+        /// <summary>
+        /// The same rows <see cref="FilteredRows"/> returned, optionally regrouped by URL path.
+        /// A group header is a SessionRow like the others except nothing must ever treat it as
+        /// a session - its id sits below the pending rows' range so neither row-restore nor
+        /// delete can pick it up.
+        /// </summary>
+        private List<SessionRow> OrderedRows(IEnumerable<SessionRow> rows)
+        {
+            var materialized = rows as List<SessionRow> ?? rows.ToList();
+
+            //Duplicates is a flat view over what the caller already filtered: grouping on top
+            //of it would bury the members of one run in their path groups.
+            if (checkBox_duplicates.Checked) materialized = OnlyDuplicates(materialized, duplicatesKeys);
+
+            //Flat view: order by timestamp. Id order only approximates it - synced-in or
+            //imported sessions were created elsewhere and their ids know nothing about when.
+            if (!checkBox_group_url.Checked || checkBox_duplicates.Checked)
+                return materialized.OrderBy(r => r.SortStamp).ToList();
+
+            var groups = materialized
+                .GroupBy(r => GroupKey(r.Host, r.Path))
+                .Select(g => (
+                    Key: g.Key,
+                    Rows: g.OrderBy(r => r.SortStamp).ToList(),
+                    Newest: g.Max(r => r.SortStamp)))
+                .OrderBy(g => g.Newest)
+                .ToList();
+
+            //A row groups under the full path unless a version segment truncated the key -
+            //only then is there anything to strip from the displayed path.
+            foreach (var group in groups)
+            {
+                if (group.Rows.Count == 0) continue;
+
+                string prefix = group.Key;
+                SessionRow first = group.Rows[0];
+
+                //The key is the whole path or the bare host - nothing to strip. Clearing
+                //matters across repaints: a row can change groups between RefreshGrid calls.
+                if (group.Key == first.Path || string.IsNullOrEmpty(first.Path) || first.Path == "/")
+                {
+                    foreach (SessionRow row in group.Rows) row.PathPrefixStripped = null;
+                    continue;
+                }
+
+                foreach (SessionRow row in group.Rows) row.PathPrefixStripped = prefix;
+            }
+
+            var ordered = new List<SessionRow>(materialized.Count + groups.Count);
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                var group = groups[i];
+
+                ordered.Add(new SessionRow
+                {
+                    Id = int.MinValue + i,
+                    Timestamp = string.Empty,
+                    IsGroupHeader = true,
+                    Host = group.Key,
+                    GroupCount = group.Rows.Count
+                });
+
+                ordered.AddRange(group.Rows);
+            }
+
+            return ordered;
         }
 
         /// <summary>
@@ -243,6 +383,12 @@ namespace ApiTester
             "select Id, \"DateTime\", ResponseStatusCode, Method, UriHost, UriAbsolutePath, Note, \"Group\""
             + " from Session where Deleted = 0 order by Id";
 
+        //Only read when the duplicates view is on - RequestHeaders and RequestBody are the
+        //heaviest text a session stores, and the grid's model must not hold them for every
+        //session just in case the view is opened.
+        private const string DuplicatesProjection =
+            "select Id, UriQuery, RequestHeaders, RequestBody from Session where Deleted = 0";
+
         public async Task LoadSessions()
         {
             CursorWait(true);
@@ -294,7 +440,10 @@ namespace ApiTester
             foreach (object[] values in rows) allRows.Add(SessionRow.FromProjection(values));
             allRows.AddRange(pending);
 
-            RefreshGrid();
+            //The ids the duplicates cache knows about changed.
+            duplicatesKeys = null;
+
+            await RefreshGrid();
         }
 
         /// <summary>
@@ -305,11 +454,13 @@ namespace ApiTester
         {
             dataGridView1.AutoGenerateColumns = false;
 
-            //Rows are added directly, so virtual mode must be off - it makes Rows.Add throw.
-            //It was set in the designer but had no effect while the grid was data bound.
-            dataGridView1.VirtualMode = false;
+            //The grid asks for each visible cell instead of holding a materialized copy of
+            //every row - the only way a repaint stays cheap once the session count grows.
+            dataGridView1.VirtualMode = true;
 
-            dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            //Wrapping would make every row measure its height against possibly long notes.
+            dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+            dataGridView1.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
             dataGridView1.Columns.Clear();
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
@@ -319,8 +470,12 @@ namespace ApiTester
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
+                //Fixed width. Any AllCells-ish mode asks CellValueNeeded for values not yet on
+                //screen - and DisplayedCells resizes as scrolling brings wider stamps into
+                //view, so every scroll reshuffles the columns under the user's eyes. The saved
+                //width lands on load; this is just the before-profile default.
                 Name = "DateTime", HeaderText = "DateTime", ValueType = typeof(DateTime),
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None, Width = 130, ReadOnly = true
             });
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
@@ -337,8 +492,11 @@ namespace ApiTester
 
             dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
             {
+                //Same fixed-width reason as DateTime: URLs vary wildly, and an auto-sizing
+                //column between the fixed ones and the fill column makes scrolling renegotiate
+                //every column.
                 Name = "UriAbsolutePath", HeaderText = "UriAbsolutePath", ValueType = typeof(string),
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader, ReadOnly = true
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None, Width = 260, ReadOnly = true
             });
 
             //The only editable column.
@@ -354,8 +512,58 @@ namespace ApiTester
             });
         }
 
+        //Reads what OnlyDuplicates compares. Runs once per toggle-on and after any session
+        //change while the view is on; null means "not loaded", and the checkers that reset it
+        //mean "loaded but stale".
+        private async Task LoadDuplicatesKeys()
+        {
+            var keys = new Dictionary<int, (string, string, string)>();
+
+            foreach (object[] row in await sessionsConn.RawRowsAsync(DuplicatesProjection))
+            {
+                keys[SqliteStore.AsInt(row[0])] =
+                    (SqliteStore.AsString(row[1]), SqliteStore.AsString(row[2]), SqliteStore.AsString(row[3]));
+            }
+
+            duplicatesKeys = keys;
+        }
+
+        //The view a rebuild of the grid starts from. Stored rather than recomputed per cell:
+        //CellValueNeeded asks one cell at a time and has no business re-filtering per question.
+        private void RefreshView()
+        {
+            List<SessionRow> rows = OrderedRows(FilteredRows());
+
+            foreach (SessionRow r in rows)
+            {
+                if (r.IsGroupHeader)
+                {
+                    //A header's label is the group key with its member count, and it belongs
+                    //in the path column - that is the column it is a label for.
+                    r.DisplayPath = r.Host + " (" + r.GroupCount.ToString(CultureInfo.CurrentCulture) + ")";
+                    continue;
+                }
+
+                //The header already shows the key, so the row shows only what follows it.
+                r.DisplayPath = r.PathPrefixStripped is not null
+                    && r.Path is not null
+                    && r.Path.StartsWith(r.PathPrefixStripped, StringComparison.Ordinal)
+                        ? r.Path.Substring(r.PathPrefixStripped.Length)
+                        : r.Path;
+
+                r.DisplayMethodAndHost = r.MethodAndHost;
+            }
+
+            viewRows = rows;
+            dataGridView1.RowCount = rows.Count;
+        }
+
+        private SessionRow ViewRow(int index)
+            => index >= 0 && index < viewRows.Count ? viewRows[index] : null;
+
         /// <summary>
-        /// The rows currently passing the text and group filters, oldest first.
+        /// The rows currently passing the text and group filters, in their stored order.
+        /// View selection (duplicates only) and sorting/grouping happen in OrderedRows.
         /// </summary>
         private IEnumerable<SessionRow> FilteredRows()
         {
@@ -377,16 +585,50 @@ namespace ApiTester
             return rows;
         }
 
+        /// <summary>
+        /// Everything about a request that makes it unique. Two rows sharing this key sent the
+        /// same request; the duplicates view lists all but the oldest of each such run as
+        /// deletion candidates. Headers take part as stored - whitespace and casing included.
+        /// A value tuple: joining text with a separator cannot work here, because the header
+        /// text itself contains newlines and field boundaries would blur into false matches.
+        /// </summary>
+        private static (string MethodAndHost, string Path, string Query, string Body, string Headers) DuplicityKey(
+            SessionRow r, Dictionary<int, (string Query, string Headers, string Body)> keys)
+            => (r.MethodAndHost, r.Path,
+                keys.GetValueOrDefault(r.Id).Query ?? string.Empty,
+                keys.GetValueOrDefault(r.Id).Body ?? string.Empty,
+                keys.GetValueOrDefault(r.Id).Headers ?? string.Empty);
+
+        /// <summary>
+        /// Keeps only rows whose request was sent more than once, dropping the oldest of each
+        /// run - that one is the original the duplicates repeat. Pending rows have no stored
+        /// request to compare, so they never participate.
+        /// </summary>
+        private static List<SessionRow> OnlyDuplicates(List<SessionRow> rows, Dictionary<int, (string, string, string)> keys)
+        {
+            var runs = rows
+                .Where(r => !r.IsPending && keys.ContainsKey(r.Id))
+                .GroupBy(r => DuplicityKey(r, keys))
+                .Where(g => g.Skip(1).Any())
+                .ToList();
+
+            //"Oldest" by timestamp, not grid order: a synced-in or imported session's id says
+            //nothing about when the request was made, but the duplicate run still has one
+            //original and it is the earliest one.
+            return runs.SelectMany(g => g.OrderBy(r => r.SortStamp).Skip(1)).ToList();
+        }
+
         private static bool Contains(string haystack, string needle)
             => haystack is not null && haystack.Contains(needle, StringComparison.CurrentCultureIgnoreCase);
 
         /// <summary>
         /// Adds a newly saved session to the model and the grid.
         /// </summary>
-        private void AppendSessionRow(Session session)
+        private async Task AppendSessionRow(Session session)
         {
             allRows.Add(SessionRow.From(session));
-            RefreshGrid();
+            duplicatesKeys = null;
+            await RefreshGrid();
         }
 
         //A request in flight is represented by a row in allRows carrying a negative id: the
@@ -428,6 +670,7 @@ namespace ApiTester
                     Timestamp = DateTime.Now,
                     StatusCode = null,
                     MethodAndHost = httpMethod + " " + requestUri.Host,
+                    Host = requestUri.Host,
                     Path = requestUri.AbsolutePath,
                     Note = PendingNote(TimeSpan.Zero),
                     Group = comboBox_group.Text,
@@ -461,7 +704,7 @@ namespace ApiTester
                     {
                         pending.Shown = true;
                         allRows.Add(pending.Row);
-                        RefreshGrid();
+                        await RefreshGrid();
                     }
                     else
                     {
@@ -481,7 +724,7 @@ namespace ApiTester
         /// Drops the placeholder. Called from the request's finally block, and idempotent so a
         /// request that failed early is not removed twice.
         /// </summary>
-        private void EndPendingRow(PendingRequest pending)
+        private async void EndPendingRow(PendingRequest pending)
         {
             if (pending is null || pending.Finished) return;
 
@@ -492,111 +735,128 @@ namespace ApiTester
             if (!pending.Shown) return;
 
             allRows.Remove(pending.Row);
-            RefreshGrid();
+            await RefreshGrid();
         }
 
         private void UpdatePendingNote(PendingRequest pending)
         {
             pending.Row.Note = PendingNote(pending.Elapsed.Elapsed);
 
-            //Only the one cell is rewritten - rebuilding the whole grid every second would
+            //Only the one cell is invalidated - rebuilding the whole view every second would
             //fight with the user's scrolling and selection.
-            DataGridViewRow row = FindGridRow(pending.Row.Id);
-            if (row is null) return;
+            int index = viewRows.FindIndex(r => r.Id == pending.Row.Id);
+            if (index < 0) return;
 
             suppressNoteUpdates = true;
-            try { row.Cells["Note"].Value = pending.Row.Note; }
+            try { dataGridView1.InvalidateCell(dataGridView1.Columns["Note"].Index, index); }
             finally { suppressNoteUpdates = false; }
         }
 
-        private DataGridViewRow FindGridRow(int id)
-        {
-            foreach (DataGridViewRow row in dataGridView1.Rows)
-            {
-                if (row.Cells["Id"].Value is int rowId && rowId == id) return row;
-            }
+        private Font headerRowFont;
 
-            return null;
-        }
+        /// <summary>Shared header tints - see CellFormatting for why they are shared.</summary>
+        private DataGridViewCellStyle headerRowStyle;
 
-        /// <summary>
-        /// Tints a placeholder row and locks its note - there is no session in the database
-        /// yet for an edit to be written to.
-        /// </summary>
-        private void StylePendingRow(DataGridViewRow row)
-        {
-            pendingRowFont ??= new Font(dataGridView1.Font, FontStyle.Italic);
-
-            row.DefaultCellStyle.BackColor = PendingRowColor;
-            row.DefaultCellStyle.SelectionBackColor = PendingRowColor;
-            row.DefaultCellStyle.SelectionForeColor = SystemColors.WindowText;
-            row.DefaultCellStyle.Font = pendingRowFont;
-
-            row.Cells["Note"].ReadOnly = true;
-        }
+        /// <summary>Shared pending tints, same reason.</summary>
+        private DataGridViewCellStyle pendingRowStyle;
 
         /// <summary>
         /// Rebuilds the visible grid rows from <see cref="allRows"/> and the active filters.
+        /// Virtual mode: the grid holds no rows, only a count; CellValueNeeded serves each
+        /// visible cell from <see cref="viewRows"/> when it is asked.
         /// </summary>
-        private void RefreshGrid()
+        private async Task RefreshGrid()
         {
-            //Populating rows raises CellValueChanged for every cell - none of it is a user edit.
-            suppressNoteUpdates = true;
+            if (checkBox_duplicates.Checked && duplicatesKeys is null)
+            {
+                await LoadDuplicatesKeys();
+            }
 
-            //Clearing the rows moves the current cell to the top, and the sync repaints the grid
-            //while the user is reading. Reloading the panes from under them is not acceptable, so
-            //RowEnter is muted here and the row that was current is put back afterwards.
+            //Changing RowCount moves the current cell, and the sync repaints the grid while the
+            //user is reading. Reloading the panes from under them is not acceptable, so RowEnter
+            //is muted here and the row that was current is put back afterwards.
             suppressRowEnterDisplay = true;
 
-            int currentId = dataGridView1.CurrentRow?.Cells["Id"].Value as int? ?? 0;
+            int currentId = 0;
+
+            if (dataGridView1.CurrentCell is not null)
+            {
+                currentId = ViewRow(dataGridView1.CurrentCell.RowIndex)?.Id ?? 0;
+            }
+
             int currentIndex = dataGridView1.CurrentCell?.RowIndex ?? 0;
 
-            dataGridView1.SuspendLayout();
+            //Only a stored session or a live placeholder is worth putting back. A group
+            //header's id collides with neither, and its row is rebuilt from scratch with
+            //every regrouping anyway.
+            bool currentIsReal = currentId > 0 || allRows.Any(r => r.IsPending && r.Id == currentId);
 
-            DataGridViewRow restored;
+            int restoredIndex = -1;
 
             try
             {
-                dataGridView1.Rows.Clear();
+                RefreshView();
 
-                foreach (SessionRow r in FilteredRows())
-                {
-                    int index = dataGridView1.Rows.Add(r.Id, r.Timestamp, r.StatusCode, r.MethodAndHost, r.Path, r.Note, r.Group);
+                if (currentIsReal) restoredIndex = viewRows.FindIndex(r => r.Id == currentId);
 
-                    if (r.IsPending) StylePendingRow(dataGridView1.Rows[index]);
-                }
-
-                //Applied here rather than in CreateGridColumns: the saved width is not known
-                //until a settings profile has been loaded.
-                dataGridView1.Columns["UriHost"].Width = _settings.DataGridViewCol3Width;
-
-                restored = FindGridRow(currentId);
-
-                if (restored is not null)
-                {
-                    dataGridView1.ClearSelection();
-                    dataGridView1.CurrentCell = restored.Cells[dataGridView1.Columns["Note"].Index];
-                    restored.Selected = true;
-                }
+                if (restoredIndex >= 0) SelectViewRow(restoredIndex);
             }
             finally
             {
-                dataGridView1.ResumeLayout();
-                suppressNoteUpdates = false;
                 suppressRowEnterDisplay = false;
             }
 
             //The row that was current is gone - filtered out, deleted here, or deleted by another
             //instance. Move to where it was and let RowEnter load whatever is there now.
-            if (restored is null && dataGridView1.RowCount > 0)
+            if (restoredIndex < 0 && dataGridView1.RowCount > 0)
             {
-                int index = Math.Clamp(currentIndex, 0, dataGridView1.RowCount - 1);
-
-                dataGridView1.ClearSelection();
-                dataGridView1.CurrentCell = dataGridView1.Rows[index].Cells[dataGridView1.Columns["Note"].Index];
-                dataGridView1.Rows[index].Selected = true;
+                SelectViewRow(Math.Clamp(currentIndex, 0, dataGridView1.RowCount - 1));
             }
         }
+
+        /// <summary>
+        /// Selects one virtual row and makes it current. SetSelectedRowCore, the API that keeps
+        /// the row shared, is protected; Rows[i].Selected materializes just this row, which is
+        /// acceptable for the row or two a user ever keeps selected.
+        /// </summary>
+        private void SelectViewRow(int index)
+        {
+            dataGridView1.ClearSelection();
+            dataGridView1.CurrentCell = dataGridView1[dataGridView1.Columns["Note"].Index, index];
+            dataGridView1.Rows[index].Selected = true;
+        }
+
+        private void DataGridView1_CellValueNeeded(object sender, DataGridViewCellValueEventArgs e)
+        {
+            SessionRow r = ViewRow(e.RowIndex);
+            if (r is null) return;
+
+            //Header rows carry only their label; the other columns stay empty.
+            e.Value = e.ColumnIndex switch
+            {
+                0 => r.Id,
+                1 => r.IsGroupHeader ? null : r.Timestamp,
+                2 => r.IsGroupHeader ? null : r.StatusCode,
+                3 => r.DisplayMethodAndHost,
+                //A header's label is the group key; it sits in the path column because that is
+                //what it groups by. DisplayPath carries the label for headers, the path for rows.
+                4 => r.DisplayPath,
+                5 => r.IsGroupHeader ? null : r.Note,
+                _ => r.IsGroupHeader ? null : r.Group
+            };
+        }
+
+        private void DataGridView1_CellValuePushed(object sender, DataGridViewCellValueEventArgs e)
+        {
+            SessionRow r = ViewRow(e.RowIndex);
+            if (r is null || r.IsGroupHeader) return;
+
+            //The Note column is the only editable one; the store itself happens in
+            //CellValueChanged, which the grid raises after the push.
+            r.Note = e.Value as string;
+        }
+
+        private void DataGridView1_NewRowNeeded(object sender, DataGridViewRowEventArgs e) { }
 
         private async Task LoadGroups()
         {
@@ -698,20 +958,28 @@ namespace ApiTester
 
             try
             {
-                //Snapshot the rows first - deleting rebuilds the grid's row collection.
-                var selected = dataGridView1.SelectedRows.Cast<DataGridViewRow>().ToList();
-                if (selected.Count == 0 && e.Row is not null) selected.Add(e.Row);
-                if (selected.Count == 0) return;
+                //Virtual mode has no per-row objects to read the selection from - enumerate
+                //selected indexes, which keeps every row shared. e.Row is the uncommitted row
+                //Del was pressed on, so it doubles as the fallback for an empty selection.
+                int selectedCount = dataGridView1.Rows.GetRowCount(DataGridViewElementStates.Selected);
+                var indexes = new List<int>(selectedCount);
+
+                for (int i = 0; i < selectedCount; i++)
+                {
+                    indexes.Add(dataGridView1.SelectedRows[i].Index);
+                }
+
+                if (indexes.Count == 0 && e.Row is not null && e.Row.Index >= 0) indexes.Add(e.Row.Index);
+                if (indexes.Count == 0) return;
 
                 //Selection lands just above the topmost row that goes away, rather than
                 //jumping back to the top of the table.
-                int previous = selected.Min(row => row.Index) - 1;
+                int previous = indexes.Min() - 1;
 
                 //A negative id is a request still in flight, not a stored session - there is
                 //nothing to delete, and the placeholder goes away when the request finishes.
-                var ids = selected
-                    .Select(row => row.Cells["Id"].Value)
-                    .OfType<int>()
+                var ids = indexes
+                    .Select(i => ViewRow(i)?.Id ?? 0)
                     .Where(id => id > 0)
                     .ToList();
 
@@ -719,8 +987,14 @@ namespace ApiTester
 
                 foreach (int id in ids)
                 {
-                    await DeleteSession(id);
+                    await DeleteSession(id, repaint: false);
                 }
+
+                //One sweep and one repaint for the whole selection - rebuilding the grid per
+                //deleted row took most of the time on a multi-delete.
+                var gone = new HashSet<int>(ids);
+                allRows.RemoveAll(r => gone.Contains(r.Id));
+                await RefreshGrid();
 
                 await SelectGridRow(previous);
             }
@@ -748,16 +1022,18 @@ namespace ApiTester
             //nothing changes and the session has to be displayed here instead.
             bool alreadyCurrent = dataGridView1.CurrentCell?.RowIndex == index;
 
-            dataGridView1.ClearSelection();
-
             //Setting the current cell scrolls it into view; Note is always visible.
-            dataGridView1.CurrentCell = dataGridView1.Rows[index].Cells[dataGridView1.Columns["Note"].Index];
-            dataGridView1.Rows[index].Selected = true;
+            SelectViewRow(index);
 
             if (alreadyCurrent) await DisplaySession(index);
         }
 
-        private async Task DeleteSession(int Id)
+        /// <summary>
+        /// Deletes one stored session. The caller batches: with <paramref name="repaint"/> off
+        /// the model and grid are brought up to date once the whole batch is through, instead
+        /// of rebuilding the grid after every row.
+        /// </summary>
+        private async Task DeleteSession(int Id, bool repaint = true)
         {
             try
             {
@@ -777,8 +1053,11 @@ namespace ApiTester
                 }
 
                 //Drop it from the model; the grid is rebuilt from that.
-                allRows.RemoveAll(r => r.Id == Id);
-                RefreshGrid();
+                if (repaint)
+                {
+                    allRows.RemoveAll(r => r.Id == Id);
+                    await RefreshGrid();
+                }
             }
             catch (Exception ex)
             {
@@ -788,11 +1067,14 @@ namespace ApiTester
 
         private async void DataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
         {
-            //Row 0 is a real session, not a header - it must display like any other.
             if (e.RowIndex < 0) return;
 
             //Repainting the grid moves the current cell; that is not the user changing rows.
             if (suppressRowEnterDisplay) return;
+
+            //Group headers and pending placeholders are no sessions; entering one leaves the
+            //panes on whatever session they already showed.
+            if (ViewRow(e.RowIndex) is not { Id: > 0 }) return;
 
             try
             {
@@ -814,11 +1096,67 @@ namespace ApiTester
         }
 
 
+        /// <summary>
+        /// The tints a row carries by kind - header, placeholder, ordinary. Styles are shared
+        /// instances per kind: the virtual grid materializes a real row only for cells in view,
+        /// so these reach visible rows through CellFormatting rather than being copied onto
+        /// every row. Note editability is enforced in CellBeginEdit, which cancels the editor.
+        /// </summary>
+        private void DataGridView1_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            SessionRow r = ViewRow(e.RowIndex);
+            if (r is null) return;
+
+            if (r.IsGroupHeader)
+            {
+                headerRowFont ??= new Font(dataGridView1.Font, FontStyle.Bold);
+                headerRowStyle ??= new DataGridViewCellStyle
+                {
+                    BackColor = SystemColors.ControlLight,
+                    SelectionBackColor = SystemColors.ControlLight,
+                    SelectionForeColor = SystemColors.WindowText,
+                    Font = headerRowFont,
+                    //Explicit, not inherited: a header left at the column's default centering
+                    //sits in the middle of the method+host column and reads as misaligned.
+                    Alignment = DataGridViewContentAlignment.MiddleLeft
+                };
+
+                e.CellStyle = headerRowStyle;
+                return;
+            }
+
+            if (r.IsPending)
+            {
+                pendingRowFont ??= new Font(dataGridView1.Font, FontStyle.Italic);
+                pendingRowStyle ??= new DataGridViewCellStyle
+                {
+                    BackColor = PendingRowColor,
+                    SelectionBackColor = PendingRowColor,
+                    SelectionForeColor = SystemColors.WindowText,
+                    Font = pendingRowFont
+                };
+
+                e.CellStyle = pendingRowStyle;
+            }
+        }
+
+        /// <summary>
+        /// Note is the one editable column, and only on a real session row - headers and
+        /// pending placeholders have no stored row for an edit to land in.
+        /// </summary>
+        private void DataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            SessionRow r = ViewRow(e.RowIndex);
+
+            if (r is null || r.IsGroupHeader || r.IsPending) e.Cancel = true;
+        }
+
         private void DataGridView1_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
             if (this.dataGridView1.Columns["ResponseStatusCode"].Index == e.ColumnIndex && e.RowIndex >= 0)
             {
-                if (dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value is not int statusCode) return;
+                SessionRow source = ViewRow(e.RowIndex);
+                if (source is null || source.StatusCode is not int statusCode) return;
 
                 if ((statusCode >= 100) && (statusCode < 300))
                 {
@@ -860,12 +1198,16 @@ namespace ApiTester
 
             try
             {
-                int clickedId = Convert.ToInt32(dataGridView1.Rows[e.RowIndex].Cells["Id"].Value, CultureInfo.InvariantCulture);
+                int clickedId = ViewRow(e.RowIndex)?.Id ?? 0;
+
+                //Headers are read-only and pending rows have no stored row yet, but belt and
+                //braces: only a real session id may be persisted.
+                if (clickedId <= 0) return;
 
                 Session session = await sessionsConn.FindAsync<Session>(clickedId);
                 if (session is null) return;
 
-                session.Note = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value as string;
+                session.Note = ViewRow(e.RowIndex)?.Note;
                 session.UpdatedUtc = SyncRow.NowUtc();
                 session.Dirty = true;
 
@@ -896,9 +1238,14 @@ namespace ApiTester
             _settings.SizeWidth = Size.Width;
 
 
-            _settings.DataGridViewCol3Width = dataGridView1.Columns.Count > 3
-                ? dataGridView1.Columns[3].Width
-                : _settings.DataGridViewCol3Width;
+            //Name-addressed: the column's position has changed before, and an index that used
+            //to land on UriHost once that was the fourth column silently saved the wrong one.
+            _settings.DataGridViewCol3Width = dataGridView1.Columns["UriHost"].Width;
+            _settings.DataGridViewDateTimeWidth = dataGridView1.Columns["DateTime"].Width;
+            _settings.DataGridViewPathWidth = dataGridView1.Columns["UriAbsolutePath"].Width;
+            _settings.DataGridViewStatusCodeWidth = dataGridView1.Columns["ResponseStatusCode"].Width;
+
+            _settings.GroupByUrl = checkBox_group_url.Checked;
 
             if (_settings.Id != 0) await settingsConn.UpdateAsync(_settings);
         }
@@ -1045,7 +1392,7 @@ namespace ApiTester
                 //Update the model and repaint. RefreshGrid suppresses note persistence while
                 //it populates, so this cannot be mistaken for the user editing the note column.
                 foreach (SessionRow r in allRows.Where(r => r.Id == Id)) r.Group = group;
-                RefreshGrid();
+                await RefreshGrid();
 
                 await LoadGroups();
             }
@@ -1057,16 +1404,26 @@ namespace ApiTester
 
         //Filtering is plain string matching over the model. The old DataView.RowFilter took a
         //SQL-ish expression, which meant escaping user input to avoid a syntax error on a quote.
-        private void TextBox_filter_TextChanged(object sender, EventArgs e)
+        private async void TextBox_filter_TextChanged(object sender, EventArgs e)
         {
             textFilter = textBox_filter.Text.Trim();
-            RefreshGrid();
+            await RefreshGrid();
         }
 
-        private void ComboBox_filter_group_SelectedIndexChanged(object sender, EventArgs e)
+        private async void ComboBox_filter_group_SelectedIndexChanged(object sender, EventArgs e)
         {
             groupFilter = comboBox_filter_group.Text.Trim();
-            RefreshGrid();
+            await RefreshGrid();
+        }
+
+        private async void CheckBox_group_url_CheckedChanged(object sender, EventArgs e)
+        {
+            await RefreshGrid();
+        }
+
+        private async void CheckBox_duplicates_CheckedChanged(object sender, EventArgs e)
+        {
+            await RefreshGrid();
         }
 
         /// <summary>
@@ -1138,13 +1495,17 @@ namespace ApiTester
                 }
 
                 //get selected session
-                if (dataGridView1.CurrentRow?.Cells["Id"].Value is not int Id)
+                if (dataGridView1.CurrentCell is null || ViewRow(dataGridView1.CurrentCell.RowIndex) is not { } currentRow)
                 {
                     MessageBox.Show("Select a session first.");
                     return;
                 }
 
-                if (Id < 0)
+                int Id = currentRow.Id;
+
+                //Pending rows and group headers look like rows but there is no stored
+                //session behind them to copy.
+                if (Id <= 0)
                 {
                     MessageBox.Show("That request has not finished yet.");
                     return;

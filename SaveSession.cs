@@ -118,7 +118,7 @@ namespace ApiTester
             }
 
             //Append to the model and repaint; RefreshGrid handles suppressing note persistence.
-            AppendSessionRow(session);
+            await AppendSessionRow(session);
 
             //Publish it, along with anything else still waiting.
             RequestSync();
@@ -141,13 +141,11 @@ namespace ApiTester
             int last = dataGridView1.RowCount - 1;
 
             dataGridView1.FirstDisplayedScrollingRowIndex = last;
-            dataGridView1.ClearSelection();
 
             //The current cell moves too, not just the selection: it is what the grid keeps hold
             //of across a repaint, so leaving it behind would send the user back to the top the
             //next time the sync brings a session in.
-            dataGridView1.CurrentCell = dataGridView1.Rows[last].Cells[dataGridView1.Columns["Note"].Index];
-            dataGridView1.Rows[last].Selected = true;
+            SelectViewRow(last);
         }
     }
 }

@@ -350,3 +350,4 @@ _publish.bat
 _db-migration.txt
 *.sqlite
 *.db
+.kilo/

@@ -26,7 +26,8 @@ namespace ApiTester
 
             try
             {
-                if (dataGridView1.Rows[RowIndex].Cells["Id"].Value is not int clickedId) return;
+                if (ViewRow(RowIndex) is not { } source) return;
+                int clickedId = source.Id;
 
                 //A negative id is a request still in flight - nothing is stored for it yet, so
                 //the panes keep showing whatever was selected before.

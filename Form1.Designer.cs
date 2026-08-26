@@ -82,6 +82,9 @@ namespace ApiTester
             splitContainer4 = new SplitContainer();
             textBox_filter = new TextBox();
             comboBox_filter_group = new ComboBox();
+            checkBox_group_url = new CheckBox();
+            checkBox_duplicates = new CheckBox();
+            panel_filter_spacer = new Panel();
             tabPage_files = new TabPage();
             listView_files = new ListView();
             columnHeader_files_name = new ColumnHeader();
@@ -824,8 +827,13 @@ namespace ApiTester
             dataGridView1.Size = new Size(644, 1323);
             dataGridView1.TabIndex = 3;
             dataGridView1.VirtualMode = false;
+            dataGridView1.CellBeginEdit += DataGridView1_CellBeginEdit;
+            dataGridView1.CellFormatting += DataGridView1_CellFormatting;
             dataGridView1.CellPainting += DataGridView1_CellPainting;
             dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
+            dataGridView1.CellValueNeeded += DataGridView1_CellValueNeeded;
+            dataGridView1.CellValuePushed += DataGridView1_CellValuePushed;
+            dataGridView1.NewRowNeeded += DataGridView1_NewRowNeeded;
             dataGridView1.RowContextMenuStripNeeded += dataGridView1_RowContextMenuStripNeeded;
             dataGridView1.RowEnter += DataGridView1_RowEnter;
             dataGridView1.UserDeletingRow += DataGridView1_UserDeletingRow;
@@ -905,7 +913,13 @@ namespace ApiTester
             // 
             // splitContainer4.Panel1
             // 
+            //Docked from the last added to the first: the combo hugs the right edge, the two
+            //checkboxes stack to its left, the spacer keeps the filter box off them, and the
+            //filter box fills what remains.
             splitContainer4.Panel1.Controls.Add(textBox_filter);
+            splitContainer4.Panel1.Controls.Add(panel_filter_spacer);
+            splitContainer4.Panel1.Controls.Add(checkBox_duplicates);
+            splitContainer4.Panel1.Controls.Add(checkBox_group_url);
             splitContainer4.Panel1.Controls.Add(comboBox_filter_group);
             // 
             // splitContainer4.Panel2
@@ -926,6 +940,16 @@ namespace ApiTester
             textBox_filter.Size = new Size(456, 25);
             textBox_filter.TabIndex = 4;
             textBox_filter.TextChanged += TextBox_filter_TextChanged;
+            //
+            // panel_filter_spacer
+            //
+            //Docked right between the textbox and the checkboxes - margins do not work on
+            //docked controls, so the gap is a control of its own.
+            panel_filter_spacer.Dock = DockStyle.Right;
+            panel_filter_spacer.Location = new Point(279, 0);
+            panel_filter_spacer.Name = "panel_filter_spacer";
+            panel_filter_spacer.Size = new Size(7, 25);
+            panel_filter_spacer.TabIndex = 13;
             // 
             // comboBox_filter_group
             // 
@@ -939,6 +963,34 @@ namespace ApiTester
             comboBox_filter_group.Size = new Size(188, 25);
             comboBox_filter_group.TabIndex = 10;
             comboBox_filter_group.SelectedIndexChanged += ComboBox_filter_group_SelectedIndexChanged;
+            //
+            // checkBox_group_url
+            //
+            checkBox_group_url.AutoSize = true;
+            checkBox_group_url.Checked = true;
+            checkBox_group_url.CheckState = CheckState.Checked;
+            checkBox_group_url.Dock = DockStyle.Right;
+            checkBox_group_url.Font = new Font("Segoe UI", 8F);
+            checkBox_group_url.Location = new Point(363, 0);
+            checkBox_group_url.Name = "checkBox_group_url";
+            checkBox_group_url.Size = new Size(93, 25);
+            checkBox_group_url.TabIndex = 11;
+            checkBox_group_url.Text = "Group by URL";
+            checkBox_group_url.UseVisualStyleBackColor = true;
+            checkBox_group_url.CheckedChanged += CheckBox_group_url_CheckedChanged;
+            //
+            // checkBox_duplicates
+            //
+            checkBox_duplicates.AutoSize = true;
+            checkBox_duplicates.Dock = DockStyle.Right;
+            checkBox_duplicates.Font = new Font("Segoe UI", 8F);
+            checkBox_duplicates.Location = new Point(286, 0);
+            checkBox_duplicates.Name = "checkBox_duplicates";
+            checkBox_duplicates.Size = new Size(77, 25);
+            checkBox_duplicates.TabIndex = 12;
+            checkBox_duplicates.Text = "Duplicities";
+            checkBox_duplicates.UseVisualStyleBackColor = true;
+            checkBox_duplicates.CheckedChanged += CheckBox_duplicates_CheckedChanged;
             //
             // tabPage_files
             //
@@ -1730,6 +1782,9 @@ namespace ApiTester
         private FastColoredTextBoxNS.FastColoredTextBox textBox_request_body;
         private FastColoredTextBoxNS.FastColoredTextBox textBox_request_headers;
         private System.Windows.Forms.ComboBox comboBox_filter_group;
+        private System.Windows.Forms.CheckBox checkBox_group_url;
+        private System.Windows.Forms.CheckBox checkBox_duplicates;
+        private System.Windows.Forms.Panel panel_filter_spacer;
         private System.Windows.Forms.SplitContainer splitContainer4;
         private System.Windows.Forms.TabControl tabControl_response;
         private System.Windows.Forms.TabPage tabPage_response_body;

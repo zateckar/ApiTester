@@ -23,6 +23,18 @@ namespace ApiTester
     }
 
     /// <summary>
+    /// Backfill a stored value for rows where a newly added column is still NULL. Used when
+    /// the model property's default is not what SQLite's "alter table add column" leaves
+    /// behind - NULL, which reads as false for a bool, or 0 / empty for the rest.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
+    internal sealed class BackfillAttribute : Attribute
+    {
+        public BackfillAttribute(object value) => Value = value;
+        public object Value { get; }
+    }
+
+    /// <summary>
     /// Reflection based table description. Deliberately minimal - just enough to map the
     /// handful of plain property-bag models this app persists.
     /// </summary>
@@ -182,12 +194,36 @@ namespace ApiTester
                     while (await reader.ReadAsync()) present.Add(reader.GetString(1));
                 }
 
+                var added = new List<PropertyInfo>();
+
                 foreach (var p in map.Columns)
                 {
                     string name = TableMap.ColumnOf(p);
                     if (present.Contains(name)) continue;
 
                     await Exec(conn, "alter table " + Quote(map.TableName) + " add column " + Quote(name) + " " + TableMap.SqlType(p.PropertyType));
+                    added.Add(p);
+                }
+
+                //Only backfill columns this call actually added: PropertyInfo order is not
+                //guaranteed, and running an update against a column another model later adds
+                //would throw "no such column". New tables start empty, so there is nothing
+                //to backfill; existing tables only have the rows from before the column.
+                foreach (var p in added)
+                {
+                    var backfill = p.GetCustomAttribute<BackfillAttribute>();
+                    if (backfill is null) continue;
+
+                    string literal = backfill.Value switch
+                    {
+                        bool flag => flag ? "1" : "0",
+                        string text => "'" + text.Replace("'", "''", StringComparison.Ordinal) + "'",
+                        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+                        _ => "'" + backfill.Value.ToString().Replace("'", "''", StringComparison.Ordinal) + "'"
+                    };
+
+                    await Exec(conn, "update " + Quote(map.TableName) + " set " + Quote(TableMap.ColumnOf(p)) + " = " + literal
+                        + " where " + Quote(TableMap.ColumnOf(p)) + " is null");
                 }
             }
             finally { gate.Release(); }

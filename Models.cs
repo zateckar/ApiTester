@@ -116,6 +116,23 @@ namespace ApiTester
         //Column name is pinned so the rename does not orphan the existing stored value.
         [ColumnName("dataGridView1_col3_width")]
         public int DataGridViewCol3Width { get; set; } = 350;
+
+        //The fixed-width date column; 130 covers a full local timestamp without capping it.
+        public int DataGridViewDateTimeWidth { get; set; } = 130;
+
+        //Status code badge and path - the remaining fixed-width columns. Note is the fill
+        //column and gets whatever is left, so it has no stored width.
+        public int DataGridViewStatusCodeWidth { get; set; } = 35;
+        public int DataGridViewPathWidth { get; set; } = 260;
+
+        //The grid's "Group by URL" toggle - default view. On for new profiles; rows written
+        //before this column existed hold NULL there and are backfilled to 1 on schema update.
+        [Backfill(true)]
+        public bool GroupByUrl { get; set; } = true;
+
+        //Emit the sync log to a file next to the session database, not just the window.
+        //Off by default - the file is a debugging aid, and leaving it on keeps it growing.
+        public bool SyncLogToFile { get; set; }
     }
 
     public class Session

@@ -118,8 +118,13 @@ namespace ApiTester
         /// Query part of the items GET for one path on this setting's branch.
         /// </summary>
         private string ItemQuery(string path)
+            //"$format=octetStream" makes the GET return the file's raw bytes. Without it the
+            //items endpoint answers with the JSON item descriptor (content only when asked for,
+            //base64 inside JSON even then), which PullRow would then log as "not a session
+            //blob" for every foreign row.
             => "items?path=" + Enc(path)
              + "&versionType=Branch&version=" + Enc(settings.DevOpsBranch)
+             + "&$format=octetStream"
              + "&api-version=7.0";
 
         private static string Enc(string value)
@@ -253,6 +258,9 @@ namespace ApiTester
 
                 using HttpResponseMessage response = await client.SendAsync(request);
 
+                host.StoreLog("List " + prefix + " -> " + (int)response.StatusCode + " " + response.StatusCode
+                    + "  url=" + request.RequestUri);
+
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     //The prefix folder does not exist yet - nothing published under it.
@@ -273,10 +281,16 @@ namespace ApiTester
 
                 if (doc.RootElement.TryGetProperty("value", out JsonElement items))
                 {
+                    int folders = 0, metas = 0, noprop = 0;
+
                     foreach (JsonElement item in items.EnumerateArray())
                     {
-                        if (!item.TryGetProperty("isFolder", out JsonElement isFolder) || isFolder.GetBoolean()) continue;
-                        if (!item.TryGetProperty("path", out JsonElement p)) continue;
+                        //Blobs arrive without an "isFolder" property; folders carry
+                        //"isFolder": true. Skipping when the property is absent drops every
+                        //row, which is exactly what we do not want.
+                        if (item.TryGetProperty("isFolder", out JsonElement isFolder)
+                            && isFolder.ValueKind == JsonValueKind.True) { folders++; continue; }
+                        if (!item.TryGetProperty("path", out JsonElement p)) { noprop++; continue; }
 
                         string fullPath = p.GetString();
 
@@ -284,7 +298,7 @@ namespace ApiTester
                         string name = fullPath.TrimStart('/');
 
                         //The metadata file is a sibling of its object, not an entry in its own right.
-                        if (name.EndsWith(".meta", StringComparison.Ordinal)) continue;
+                        if (name.EndsWith(".meta", StringComparison.Ordinal)) { metas++; continue; }
 
                         Dictionary<string, string> metadata = null;
 
@@ -296,6 +310,14 @@ namespace ApiTester
 
                         entries.Add(new SyncEntry { Name = name, Metadata = metadata });
                     }
+
+                    host.StoreLog("List " + prefix + ": items=" + items.GetArrayLength()
+                        + " folders=" + folders + " metas=" + metas + " noprop=" + noprop
+                        + " entries=" + entries.Count);
+                }
+                else
+                {
+                    host.StoreLog("List " + prefix + ": response has no \"value\" array: " + doc.RootElement.GetRawText().Substring(0, Math.Min(200, doc.RootElement.GetRawText().Length)));
                 }
 
                 host.SyncOpResult(ok: true);

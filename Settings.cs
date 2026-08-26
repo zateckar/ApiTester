@@ -160,6 +160,18 @@ namespace ApiTester
             textBox_devops_pat.Text = _settings.DevOpsPat;
             textBox_devops_branch.Text = _settings.DevOpsBranch;
 
+            //Setting Checked fires CheckedChanged; RefreshGrid on an empty grid is harmless.
+            checkBox_group_url.Checked = _settings.GroupByUrl;
+
+            //The column widths belong to the profile - applied once here, not from RefreshGrid,
+            //or every repaint would snap a manual resize back to the saved value. Note is the
+            //fill column and derives its width from what is left, so it is neither saved nor
+            //applied.
+            dataGridView1.Columns["DateTime"].Width = _settings.DataGridViewDateTimeWidth;
+            dataGridView1.Columns["UriHost"].Width = _settings.DataGridViewCol3Width;
+            dataGridView1.Columns["UriAbsolutePath"].Width = _settings.DataGridViewPathWidth;
+            dataGridView1.Columns["ResponseStatusCode"].Width = _settings.DataGridViewStatusCodeWidth;
+
             //Swap first, close after: a store holds its database file open until closed, so
             //keeping the reference without closing it would leak the old profile's connection
             //(and the lock on its file) on every switch.

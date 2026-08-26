@@ -104,6 +104,11 @@ namespace ApiTester
         //match what wrote them.
         private int syncUndecryptable;
 
+        //A foreign row was listed but not pulled for a reason other than decryption (the read
+        //failed or returned bytes that are not a session blob). Recording the tick then would
+        //skip the row permanently, so the round is left un-recorded and retried next round.
+        private bool pullIncomplete;
+
         /// <summary>
         /// A pull has changed the database but the grid has not caught up yet - it was busy
         /// being edited. The next round repaints it.
@@ -287,6 +292,7 @@ namespace ApiTester
                 if (generation != syncGeneration) return;
 
                 syncUndecryptable = 0;
+                pullIncomplete = false;
                 syncFailedThisRound = false;
 
                 bool changed = await SyncPull(generation);
@@ -778,7 +784,11 @@ namespace ApiTester
             string self = await InstanceId();
 
             var ticks = await activeSyncStore.List(prefix + "/" + TicksFolder + "/", includeMetadata: true);
-            if (ticks is null) return false;
+            if (ticks is null)
+            {
+                SyncLog("Pull: tick listing failed.");
+                return false;
+            }
 
             //One full pass per run whatever the ticks say: another instance may have pushed and
             //then failed to write its tick, and there would be no other way to notice.
@@ -796,15 +806,27 @@ namespace ApiTester
                 if (!string.Equals(await GetSyncState("tick:" + instance), seq, StringComparison.Ordinal)) remoteChanged = true;
             }
 
+            SyncLog("Pull: ticks=" + ticks.Count + " seen=" + seen.Count + " remoteChanged=" + remoteChanged);
+
             //Nothing has been pushed since the last look. This is the ordinary case, and it costs
             //one small listing rather than a walk over every session in the container.
             if (!remoteChanged) return false;
 
             var remote = await activeSyncStore.List(prefix + "/" + RowsFolder + "/", includeMetadata: true);
-            if (remote is null) return false;
+            if (remote is null)
+            {
+                SyncLog("Pull: rows listing failed.");
+                return false;
+            }
 
             var tombstones = await activeSyncStore.List(prefix + "/" + DelsFolder + "/", includeMetadata: false);
-            if (tombstones is null) return false;
+            if (tombstones is null)
+            {
+                SyncLog("Pull: dels listing failed.");
+                return false;
+            }
+
+            SyncLog("Pull: " + remote.Count + " remote rows, " + tombstones.Count + " tombstones.");
 
             var local = await LocalUidIndex();
             bool changed = false;
@@ -881,7 +903,7 @@ namespace ApiTester
             //actually read everything. After a decryption failure the round is left un-recorded so
             //that correcting the key is enough to pick the sessions up, with no further change
             //needed anywhere else.
-            if (syncUndecryptable == 0)
+            if (syncUndecryptable == 0 && !pullIncomplete)
             {
                 foreach (var (instance, seq) in seen) await SetSyncState("tick:" + instance, seq);
 
@@ -926,7 +948,15 @@ namespace ApiTester
         private async Task<bool> PullRow(SyncEntry entry, string uid)
         {
             byte[] content = await activeSyncStore.Get(entry.Name);
-            if (content is null) return false;
+            if (content is null)
+            {
+                //The row is in the listing but its body did not come back. Swallowing this
+                //silently once recorded the tick anyway, and the gate above then skipped the
+                //row on every later round - foreign sessions ignored forever, with no log line.
+                pullIncomplete = true;
+                SyncLog("Could not pull " + entry.Name + ": no content; retried on the next round.");
+                return false;
+            }
 
             if (SyncCrypto.LooksEncrypted(content))
             {
@@ -945,6 +975,7 @@ namespace ApiTester
 
             if (session is null)
             {
+                pullIncomplete = true;
                 SyncLog("Ignored " + entry.Name + ": not a session blob.");
                 return false;
             }
@@ -991,6 +1022,15 @@ namespace ApiTester
 
         private void SyncLog(string message)
         {
+            try
+            {
+                //Mirror to a plain file next to the session database so sync behaviour can be
+                //inspected without the window. Best-effort: logging must never break the sync.
+                string path = Path.Combine(AppContext.BaseDirectory, "sync.log");
+                File.AppendAllText(path, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff ", CultureInfo.InvariantCulture) + message + Environment.NewLine);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+
             if (IsDisposed || Disposing) return;
 
             try
