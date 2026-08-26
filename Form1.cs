@@ -357,6 +357,10 @@ namespace ApiTester
 
             try
             {
+                //The note editor's debounce may still hold an edit - write it before the sync
+                //flush below has a chance of publishing the note without its latest text.
+                await FlushNotesOnLeave();
+
                 await SaveSplitterData();
 
                 //Last chance to publish this session's changes; whatever is left stays marked
@@ -1230,7 +1234,8 @@ namespace ApiTester
         private async Task SaveSplitterData()
         {
             _settings.splitContainer5 = splitContainer5_reqres.SplitterDistance;
-            _settings.splitContainer1 = splitContainer1_main_form.SplitterDistance;
+            _settings.splitContainer1 = splitContainer_main_sessions.SplitterDistance;
+            _settings.SplitterNotesDistance = splitContainer_notes.SplitterDistance;
 
             _settings.LocationX = Location.X;
             _settings.LocationY = Location.Y;
@@ -1257,7 +1262,7 @@ namespace ApiTester
 
             //A saved distance from a larger window can exceed the current bounds.
             SetSplitterDistance(splitContainer5_reqres, _settings.splitContainer5);
-            SetSplitterDistance(splitContainer1_main_form, _settings.splitContainer1);
+            SetSplitterDistance(splitContainer_main_sessions, _settings.splitContainer1);
         }
 
         private static void SetSplitterDistance(SplitContainer container, int distance)

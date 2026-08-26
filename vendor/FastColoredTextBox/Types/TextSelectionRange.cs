@@ -1064,6 +1064,72 @@ namespace FastColoredTextBoxNS.Types
             tb.Invalidate();
         }
 
+        /// <summary>
+        /// Strips every highlighter style from the range while keeping framework styles
+        /// (read-only, blinking). Unlike ClearStyle(params Style[]) it cannot miss a style:
+        /// anything a highlighter may have set is gone afterwards.
+        /// </summary>
+        public void ClearHighlighterStyles()
+        {
+            int fromLine = Math.Min(End.iLine, Start.iLine);
+            int toLine = Math.Max(End.iLine, Start.iLine);
+            int fromChar = FromX;
+            int toChar = ToX;
+            if (fromLine < 0) return;
+            //
+            for (int y = fromLine; y <= toLine; y++)
+            {
+                int fromX = y == fromLine ? fromChar : 0;
+                int toX = y == toLine ? Math.Min(toChar - 1, tb[y].Count - 1) : tb[y].Count - 1;
+                for (int x = fromX; x <= toX; x++)
+                {
+                    StyledChar c = tb[y][x];
+                    c.ClearKeepingFrameworkStyles();
+                    tb[y][x] = c;
+                }
+            }
+            tb.Invalidate();
+        }
+
+        /// <summary>
+        /// Sets the style as the char's only style (framework styles are not preserved - use
+        /// after ClearHighlighterStyles). Highlighters that repaint a char repeatedly in one
+        /// pass use this so the glyph is layered exactly once with the final style.
+        /// </summary>
+        public void SetStyleExclusive(Style style)
+        {
+            int fromLine = Math.Min(End.iLine, Start.iLine);
+            int toLine = Math.Max(End.iLine, Start.iLine);
+            int fromChar = FromX;
+            int toChar = ToX;
+            if (fromLine < 0) return;
+            //
+            for (int y = fromLine; y <= toLine; y++)
+            {
+                int fromX = y == fromLine ? fromChar : 0;
+                int toX = y == toLine ? Math.Min(toChar - 1, tb[y].Count - 1) : tb[y].Count - 1;
+                for (int x = fromX; x <= toX; x++)
+                {
+                    StyledChar c = tb[y][x];
+                    c.SetStyleEx(style);
+                    if (c.Blinking)
+                        tb.BlinkSet.TryAdd(c, 0);
+                    tb[y][x] = c;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set the style exclusively for given regex matches.
+        /// </summary>
+        public void SetStyleExclusive(Style style, Regex regex)
+        {
+            foreach (var range in GetRanges(regex))
+                range.SetStyleExclusive(style);
+            //
+            tb.Invalidate();
+        }
+
         private void OnSelectionChanged()
         {
             //clear cache

@@ -197,6 +197,11 @@ namespace ApiTester
             //not survive a switch to another one.
             ResetFilesTab();
 
+            //Same for the notes: the listing came out of the previous profile's database and
+            //the editor's debounce may still hold its text. Drop both before the new profile's
+            //grid loads.
+            ResetNotesTab();
+
             ApplySavedSplitterData();
         }
 
@@ -219,6 +224,17 @@ namespace ApiTester
                 if (tabControl2.SelectedTab == tabPage_files && !filesLoaded)
                 {
                     await NavigateFiles(filesPrefix);
+                }
+
+                if (tabControl2.SelectedTab == tabPage_notes && !notesLoaded)
+                {
+                    await LoadNotes();
+                }
+
+                //Leaving the Notes tab flushes whatever the editor's debounce still holds.
+                if (tabControl2.SelectedTab != tabPage_notes)
+                {
+                    await FlushNotesOnLeave();
                 }
             }
             catch (Exception ex)

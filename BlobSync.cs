@@ -18,9 +18,12 @@ namespace ApiTester
         private const string RowsFolder = "rows";
         private const string DelsFolder = "dels";
         private const string TicksFolder = "ticks";
+        private const string NotesFolder = "notes";
+        private const string DelNotesFolder = "deln";
 
         private const string MetaNote = "note";
         private const string MetaGroup = "grp";
+        private const string MetaName = "name";
         private const string MetaUpdated = "upd";
         private const string MetaSeq = "seq";
 
@@ -32,8 +35,8 @@ namespace ApiTester
         //database does not monopolise the connection for minutes.
         private const int MaxPushPerRound = 100;
 
-        private const int SyncDebounceMs = 2000;
-        private const int SyncPollMs = 60000;
+        private const int SyncDebounceMs = 8000;
+        private const int SyncPollMs = 180000;
         private const int CloseFlushMs = 5000;
 
         //The WinForms timer, deliberately: its Tick runs on the UI thread, which is where every
@@ -141,6 +144,8 @@ namespace ApiTester
 
         private static string RowPath(string uid) => SyncPrefix() + "/" + RowsFolder + "/" + uid;
         private static string DelPath(string uid) => SyncPrefix() + "/" + DelsFolder + "/" + uid;
+        private static string NoteRowPath(string uid) => SyncPrefix() + "/" + NotesFolder + "/" + uid;
+        private static string DelNotePath(string uid) => SyncPrefix() + "/" + DelNotesFolder + "/" + uid;
         private static string TickPath(string instance) => SyncPrefix() + "/" + TicksFolder + "/" + instance;
 
         private static string LastSegment(string blobName)
@@ -318,7 +323,8 @@ namespace ApiTester
                 {
                     //Rebuilding the grid clears its rows, which would throw away a note the user
                     //is in the middle of typing. The database is already up to date either way.
-                    if (dataGridView1.IsCurrentCellInEditMode)
+                    if (dataGridView1.IsCurrentCellInEditMode
+                        || (tabControl2.SelectedTab == tabPage_notes && dataGridView_notes.IsCurrentCellInEditMode))
                     {
                         syncQueued = true;
                     }
@@ -327,13 +333,15 @@ namespace ApiTester
                         await ReloadSessionRows();
                         await LoadGroups();
 
+                        if (tabControl2.SelectedTab == tabPage_notes) ReloadNotesGrid();
+
                         //Cleared last: a repaint that failed leaves the grid to be caught up on
                         //the next round rather than silently stale.
                         syncGridStale = false;
                     }
                 }
 
-                int pending = await sessionsConn.ScalarIntAsync("select count(*) from Session where Dirty = 1");
+                int pending = await sessionsConn.ScalarIntAsync("select (select count(*) from Session where Dirty = 1) + (select count(*) from Note where Dirty = 1)");
 
                 //The re-encryption is done once nothing is waiting to go out.
                 if (pending == 0) await SetSyncState("rekey", "0");
@@ -420,6 +428,10 @@ namespace ApiTester
         {
             //Adds Uid, UpdatedUtc, Dirty, Uploaded and Deleted to databases written before them.
             await sessionsConn.EnsureTableAsync<Session>();
+
+            //Outside the schema-version gate: a database can already be at the current version
+            //from before notes existed, and EnsureTableAsync is idempotent and cheap anyway.
+            await sessionsConn.EnsureTableAsync<Note>();
             await sessionsConn.ExecuteAsync("create table if not exists SyncState (\"Key\" varchar primary key not null, \"Value\" varchar)");
 
             if (!string.Equals(await GetSyncState("schema"), SyncSchemaVersion, StringComparison.Ordinal))
@@ -509,6 +521,7 @@ namespace ApiTester
             if (!string.Equals(await GetSyncState("container"), identity, StringComparison.OrdinalIgnoreCase))
             {
                 await sessionsConn.ExecuteAsync("update Session set Uploaded = 0, Dirty = 1 where Deleted = 0");
+                await sessionsConn.ExecuteAsync("update Note set Uploaded = 0, Dirty = 1 where Deleted = 0");
                 await sessionsConn.ExecuteAsync("delete from SyncState where \"Key\" like 'tick:%'");
                 await SetSyncState("container", identity);
 
@@ -534,9 +547,10 @@ namespace ApiTester
             //Nothing published, so nothing to re-encrypt - just record which key is in use. This is
             //the ordinary case for an instance whose key was simply wrong until now: it published
             //nothing, and correcting the key is all it needed.
-            if (await sessionsConn.ScalarIntAsync("select count(*) from Session where Uploaded = 1") == 0) return;
+            if (await sessionsConn.ScalarIntAsync("select (select count(*) from Session where Uploaded = 1) + (select count(*) from Note where Uploaded = 1)") == 0) return;
 
             await sessionsConn.ExecuteAsync("update Session set Uploaded = 0, Dirty = 1 where Deleted = 0");
+            await sessionsConn.ExecuteAsync("update Note set Uploaded = 0, Dirty = 1 where Deleted = 0");
 
             //The row blobs are still there under the old key, and a create that refuses to
             //overwrite would leave them. This one time, replace them.
@@ -629,8 +643,7 @@ namespace ApiTester
             int pushed = 0;
 
             foreach (object[] row in dirty)
-            {
-                //IsDisposed/Disposing: the close-flush caps itself at CloseFlushMs and lets
+            {                //IsDisposed/Disposing: the close-flush caps itself at CloseFlushMs and lets
                 //the round run on while the window tears down - stop touching it instead.
                 if (generation != syncGeneration || syncFailedThisRound || IsDisposed || Disposing) break;
 
@@ -702,7 +715,99 @@ namespace ApiTester
                 pushed++;
             }
 
+            //Notes ride the same round. Unlike sessions the body travels on every edit - notes
+            //are edited as whole content, so there is no metadata-only update for them.
+            var dirtyNotes = await sessionsConn.RawRowsAsync(
+                "select Id, Uid, Name, UpdatedUtc, Uploaded, Deleted from Note where Dirty = 1"
+                + " order by Id limit " + MaxPushPerRound.ToString(CultureInfo.InvariantCulture));
+
+            if (dirtyNotes.Count >= MaxPushPerRound) syncQueued = true;
+
+            foreach (object[] row in dirtyNotes)
+            {
+                if (generation != syncGeneration || syncFailedThisRound || IsDisposed || Disposing) break;
+
+                int id = SqliteStore.AsInt(row[0]);
+                string uid = SqliteStore.AsString(row[1]);
+                string name = SqliteStore.AsString(row[2]);
+                string updated = SqliteStore.AsString(row[3]);
+                bool uploaded = SqliteStore.AsBool(row[4]);
+                bool deleted = SqliteStore.AsBool(row[5]);
+
+                if (string.IsNullOrEmpty(uid)) continue;
+                if (string.IsNullOrEmpty(updated)) updated = EpochUtc;
+
+                //The name is the user's own text, so it is encrypted like a session's note.
+                //A label distinct from the note body keeps one from being opened as the other.
+                var metadata = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [MetaName] = SyncCrypto.ProtectText(name, syncKey, uid + "|" + MetaName, hex: _settings.SyncWithDevOps),
+                    [MetaUpdated] = updated
+                };
+
+                if (deleted)
+                {
+                    if (await PushNoteDelete(uid, updated) is not SyncStoreResult.Ok) continue;
+
+                    await sessionsConn.ExecuteAsync("delete from Note where Id = $id", ("$id", id));
+                    pushed++;
+                    continue;
+                }
+
+                SyncStoreResult result = await PushNote(id, uid, metadata, onlyIfMissing: rekey ? false : !uploaded);
+
+                if (!uploaded && result == SyncStoreResult.Exists)
+                {
+                    //Another instance published a blob under this uid first. It stands - ours
+                    //overwrites it on the next round, or the pull resolves it by UpdatedUtc.
+                    await sessionsConn.ExecuteAsync("update Note set Uploaded = 1 where Id = $id", ("$id", id));
+                    syncQueued = true;
+                    continue;
+                }
+
+                if (uploaded && result == SyncStoreResult.Missing)
+                {
+                    //Deleted elsewhere, but edited here. Put the note back: the next round
+                    //uploads it in full.
+                    await sessionsConn.ExecuteAsync("update Note set Uploaded = 0 where Id = $id", ("$id", id));
+                    continue;
+                }
+
+                if (result != SyncStoreResult.Ok) continue;
+
+                await sessionsConn.ExecuteAsync("update Note set Uploaded = 1, Dirty = 0 where Id = $id", ("$id", id));
+                pushed++;
+            }
+
             return pushed;
+        }
+
+        private async Task<SyncStoreResult> PushNote(int id, string uid, IReadOnlyDictionary<string, string> metadata, bool onlyIfMissing)
+        {
+            Note note = await sessionsConn.FindAsync<Note>(id);
+            if (note is null) return SyncStoreResult.Failed;
+
+            byte[] content = SyncRow.WriteNote(note);
+
+            //A label of its own, so a note blob cannot be opened as a session and vice versa.
+            if (syncKey is not null) content = SyncCrypto.Protect(content, syncKey, uid + "|" + MetaNote);
+
+            return await activeSyncStore.Put(NoteRowPath(uid), content, metadata, onlyIfMissing);
+        }
+
+        /// <summary>
+        /// Removes the note's blob and leaves a tombstone behind, exactly as sessions do.
+        /// </summary>
+        private async Task<SyncStoreResult> PushNoteDelete(string uid, string updated)
+        {
+            SyncStoreResult removed = await activeSyncStore.Delete(NoteRowPath(uid));
+            if (removed != SyncStoreResult.Ok) return removed;
+
+            var metadata = new Dictionary<string, string>(StringComparer.Ordinal) { [MetaUpdated] = updated };
+
+            SyncStoreResult tombstone = await activeSyncStore.Put(DelNotePath(uid), Array.Empty<byte>(), metadata, onlyIfMissing: false);
+
+            return tombstone == SyncStoreResult.Exists ? SyncStoreResult.Ok : tombstone;
         }
 
         private async Task<SyncStoreResult> PushRow(int id, string uid, IReadOnlyDictionary<string, string> metadata, bool overwrite)
@@ -899,6 +1004,72 @@ namespace ApiTester
                 changed = true;
             }
 
+            //Notes arrive in the same pass - the tick tree is shared, so a remote change that
+            //only touched notes still flips remoteChanged above.
+            var remoteNotes = await activeSyncStore.List(prefix + "/" + NotesFolder + "/", includeMetadata: true);
+            if (remoteNotes is null)
+            {
+                SyncLog("Pull: notes listing failed.");
+                return changed;
+            }
+
+            var noteTombstones = await activeSyncStore.List(prefix + "/" + DelNotesFolder + "/", includeMetadata: false);
+            if (noteTombstones is null)
+            {
+                SyncLog("Pull: note tombstones listing failed.");
+                return changed;
+            }
+
+            var localNotes = await LocalNoteUidIndex();
+
+            foreach (SyncEntry entry in remoteNotes)
+            {
+                if (generation != syncGeneration || syncFailedThisRound || IsDisposed || Disposing) return changed;
+
+                string uid = LastSegment(entry.Name);
+                if (uid.Length == 0) continue;
+
+                if (!localNotes.TryGetValue(uid, out LocalRow row))
+                {
+                    if (await PullNoteRow(entry, uid)) changed = true;
+                    continue;
+                }
+
+                //Our own delete is still on its way out; it must not be undone here.
+                if (row.Deleted) continue;
+
+                string updated = entry.Meta(MetaUpdated);
+
+                DateTime theirsn = SyncRow.ParseUtc(updated);
+                DateTime oursn = SyncRow.ParseUtc(row.UpdatedUtc);
+
+                if (!string.IsNullOrEmpty(updated) && theirsn > oursn)
+                {
+                    //Later edit wins. Unlike sessions the body lives in the blob, not the
+                    //metadata, so the whole note comes back across.
+                    if (await PullNoteUpdate(entry, uid, row.Id, updated)) changed = true;
+                }
+                else if (!string.IsNullOrEmpty(updated) && theirsn < oursn)
+                {
+                    //Ours is later - mark it dirty so the push republishes the whole note.
+                    await sessionsConn.ExecuteAsync("update Note set Dirty = 1, Uploaded = 1 where Id = $id", ("$id", row.Id));
+                }
+                else if (!row.Uploaded && !row.Dirty)
+                {
+                    await sessionsConn.ExecuteAsync("update Note set Uploaded = 1 where Id = $id", ("$id", row.Id));
+                }
+            }
+
+            foreach (SyncEntry entry in noteTombstones)
+            {
+                if (generation != syncGeneration || syncFailedThisRound || IsDisposed || Disposing) return changed;
+
+                if (!localNotes.TryGetValue(LastSegment(entry.Name), out LocalRow row)) continue;
+
+                await sessionsConn.ExecuteAsync("delete from Note where Id = $id", ("$id", row.Id));
+                changed = true;
+            }
+
             //Remembering the counters is what makes the next round cheap - but only when this one
             //actually read everything. After a decryption failure the round is left un-recorded so
             //that correcting the key is enough to pick the sessions up, with no further change
@@ -931,6 +1102,137 @@ namespace ApiTester
             }
 
             return index;
+        }
+
+        private async Task<Dictionary<string, LocalRow>> LocalNoteUidIndex()
+        {
+            var index = new Dictionary<string, LocalRow>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (object[] row in await sessionsConn.RawRowsAsync(
+                "select Uid, Id, UpdatedUtc, Uploaded, Dirty, Deleted from Note where Uid is not null and Uid <> ''"))
+            {
+                index[SqliteStore.AsString(row[0])] = new LocalRow
+                {
+                    Id = SqliteStore.AsInt(row[1]),
+                    UpdatedUtc = SqliteStore.AsString(row[2]),
+                    Uploaded = SqliteStore.AsBool(row[3]),
+                    Dirty = SqliteStore.AsBool(row[4]),
+                    Deleted = SqliteStore.AsBool(row[5])
+                };
+            }
+
+            return index;
+        }
+
+        /// <summary>
+        /// Pulls a note this instance has never seen and inserts it locally.
+        /// </summary>
+        private async Task<bool> PullNoteRow(SyncEntry entry, string uid)
+        {
+            byte[] content = await activeSyncStore.Get(entry.Name);
+            if (content is null)
+            {
+                pullIncomplete = true;
+                SyncLog("Could not pull " + entry.Name + ": no content; retried on the next round.");
+                return false;
+            }
+
+            if (SyncCrypto.LooksEncrypted(content))
+            {
+                if (!SyncCrypto.TryUnprotect(content, syncKey, uid + "|" + MetaNote, out byte[] plaintext))
+                {
+                    syncUndecryptable++;
+                    return false;
+                }
+
+                content = plaintext;
+            }
+
+            Note pulled = SyncRow.ReadNote(content);
+
+            if (pulled is null)
+            {
+                pullIncomplete = true;
+                SyncLog("Ignored " + entry.Name + ": not a note blob.");
+                return false;
+            }
+
+            pulled.Id = 0;
+            pulled.Uid = uid;
+
+            //Metadata wins over the header - the name in the header is what it was when the
+            //blob was last written whole, and the later rename may have landed metadata-only.
+            string updated = entry.Meta(MetaUpdated);
+
+            if (!string.IsNullOrEmpty(updated))
+            {
+                if (!SyncCrypto.TryUnprotectText(entry.Meta(MetaName), syncKey, uid + "|" + MetaName, out string name, hex: _settings.SyncWithDevOps))
+                {
+                    syncUndecryptable++;
+                    return false;
+                }
+
+                pulled.Name = name;
+                pulled.UpdatedUtc = updated;
+            }
+
+            pulled.Dirty = false;
+            pulled.Uploaded = true;
+            pulled.Deleted = false;
+
+            await sessionsConn.InsertAsync(pulled);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Applies a remote edit to a note this instance already holds. Fetches the blob because
+        /// note bodies travel in it, not in metadata.
+        /// </summary>
+        private async Task<bool> PullNoteUpdate(SyncEntry entry, string uid, int localId, string updated)
+        {
+            byte[] content = await activeSyncStore.Get(entry.Name);
+            if (content is null)
+            {
+                pullIncomplete = true;
+                SyncLog("Could not pull " + entry.Name + ": no content; retried on the next round.");
+                return false;
+            }
+
+            if (SyncCrypto.LooksEncrypted(content))
+            {
+                if (!SyncCrypto.TryUnprotect(content, syncKey, uid + "|" + MetaNote, out byte[] plaintext))
+                {
+                    syncUndecryptable++;
+                    return false;
+                }
+
+                content = plaintext;
+            }
+
+            Note pulled = SyncRow.ReadNote(content);
+
+            if (pulled is null)
+            {
+                pullIncomplete = true;
+                SyncLog("Ignored " + entry.Name + ": not a note blob.");
+                return false;
+            }
+
+            if (!SyncCrypto.TryUnprotectText(entry.Meta(MetaName), syncKey, uid + "|" + MetaName, out string name, hex: _settings.SyncWithDevOps))
+            {
+                syncUndecryptable++;
+                return false;
+            }
+
+            await sessionsConn.ExecuteAsync(
+                "update Note set Name = $name, Text = $text, UpdatedUtc = $upd, Dirty = 0, Uploaded = 1 where Id = $id",
+                ("$name", name),
+                ("$text", pulled.Text ?? string.Empty),
+                ("$upd", updated),
+                ("$id", localId));
+
+            return true;
         }
 
         /// <summary>
@@ -1051,6 +1353,10 @@ namespace ApiTester
             {
                 toolStripStatusLabel_sync.Text = text;
                 toolStripStatusLabel_sync.ToolTipText = tooltip ?? string.Empty;
+
+                //Mirror the round's outcome into the Notes tab: the editor's saved/pending
+                //message is only meaningful next to what the sync has made of it.
+                UpdateNotesSyncStatus(text, tooltip);
             }
             catch (ObjectDisposedException) { }
         }

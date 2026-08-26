@@ -133,6 +133,12 @@ namespace ApiTester
         //Emit the sync log to a file next to the session database, not just the window.
         //Off by default - the file is a debugging aid, and leaving it on keeps it growing.
         public bool SyncLogToFile { get; set; }
+
+        /// <summary>Notes tab: width of the notes list next to the editor.</summary>
+        public int SplitterNotesDistance { get; set; } = 260;
+
+        /// <summary>Notes tab: FastColoredTextBox Zoom, 100 = 100%.</summary>
+        public int NoteEditorZoom { get; set; } = 100;
     }
 
     public class Session
@@ -195,6 +201,46 @@ namespace ApiTester
         /// <summary>
         /// Deleted locally, kept until the blob is gone too. Rows in this state are hidden
         /// from the grid.
+        /// </summary>
+        public bool Deleted { get; set; }
+    }
+
+    /// <summary>
+    /// A user-written note. Synced through the same blob/DevOps round as sessions - same
+    /// semantics: last-writer-wins on <see cref="UpdatedUtc"/>, tombstones for deletes.
+    /// Unlike sessions the whole text travels in the blob on every edit, so there is no
+    /// metadata-only update path.
+    /// </summary>
+    public class Note
+    {
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Identifies the note across instances, and names its blob. Minted as a fresh GUID
+        /// at insert - notes have no content history to derive one from the way sessions do.
+        /// </summary>
+        public string Uid { get; set; }
+
+        public string Name { get; set; }
+        public string Text { get; set; }
+
+        /// <summary>ISO-8601 UTC of creation.</summary>
+        public string CreatedUtc { get; set; }
+
+        /// <summary>
+        /// ISO-8601 UTC of the last edit. Drives conflict resolution: the later timestamp wins.
+        /// </summary>
+        public string UpdatedUtc { get; set; }
+
+        /// <summary>Has a change that the container has not accepted yet.</summary>
+        public bool Dirty { get; set; }
+
+        /// <summary>The row's blob exists in the container.</summary>
+        public bool Uploaded { get; set; }
+
+        /// <summary>
+        /// Deleted locally, kept until the tombstone is published. Rows in this state are
+        /// hidden from the grid.
         /// </summary>
         public bool Deleted { get; set; }
     }

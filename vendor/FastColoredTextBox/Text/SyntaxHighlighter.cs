@@ -78,6 +78,17 @@ namespace FastColoredTextBoxNS.Text
         protected Regex JSONNumberRegex;
         protected Regex JSONStringRegex;
 
+        protected Regex MarkdownHeadingRegex;
+        protected Regex MarkdownCodeSpanRegex;
+        protected Regex MarkdownCodeBlockRegex;
+        protected Regex MarkdownLinkRegex;
+        protected Regex MarkdownImageRegex;
+        protected Regex MarkdownListMarkerRegex;
+        protected Regex MarkdownQuoteRegex;
+        protected Regex MarkdownEmphasisRegex;
+        protected Regex MarkdownStrongRegex;
+        protected Regex MarkdownFrontMatterRegex;
+
         protected Regex LuaCommentRegex1,
                       LuaCommentRegex2,
                       LuaCommentRegex3;
@@ -187,6 +198,10 @@ namespace FastColoredTextBoxNS.Text
 
                 case Language.JSON:
                     JSONSyntaxHighlight(range);
+                    break;
+
+                case Language.Markdown:
+                    MarkdownSyntaxHighlight(range);
                     break;
 
                 default:
@@ -732,6 +747,14 @@ namespace FastColoredTextBoxNS.Text
                     StringStyle = BrownStyle;
                     NumberStyle = MagentaStyle;
                     KeywordStyle = BlueStyle;
+                    break;
+
+                case Language.Markdown:
+                    StringStyle = GreenStyle;
+                    NumberStyle = GrayStyle;
+                    KeywordStyle = BlueBoldStyle;
+                    TagNameStyle = RedStyle;
+                    CommentStyle = GrayStyle;
                     break;
             }
         }
@@ -1365,6 +1388,62 @@ namespace FastColoredTextBoxNS.Text
             JSONKeywordRegex = new Regex(@"(?<range>""([^\\""]|\\"")*"")\s*:", RegexCompiledOption);
         }
 
+        protected void InitMarkdownRegex()
+        {
+            //Multi-line constructs first: fenced code blocks and YAML front matter are
+            //singleline spans; everything else is line-oriented.
+            MarkdownCodeBlockRegex = new Regex(@"^(`{3,}|~{3,}).*?^\1[^\S\n]*$", RegexOptions.Multiline | RegexOptions.Singleline | RegexCompiledOption);
+            MarkdownFrontMatterRegex = new Regex(@"\A---[^\S\n]*\r?\n.*?\r?\n---[^\S\n]*(\r?\n|$)", RegexOptions.Singleline | RegexCompiledOption);
+            MarkdownHeadingRegex = new Regex(@"^#{1,6}\s.*$|^.*\r?\n[=-]+\s*$", RegexOptions.Multiline | RegexCompiledOption);
+            MarkdownCodeSpanRegex = new Regex(@"`[^`\n]+`", RegexCompiledOption);
+            //Link/image: the bracket text is styled; the target gains the string style.
+            MarkdownLinkRegex = new Regex(@"\[[^\]\n]*\]\([^)\n]*\)", RegexCompiledOption);
+            MarkdownImageRegex = new Regex(@"!\[[^\]\n]*\]\([^)\n]*\)", RegexCompiledOption);
+            MarkdownListMarkerRegex = new Regex(@"^[^\S\n]*(([-*+])|(\d+[.)]))[^\S\n]+", RegexOptions.Multiline | RegexCompiledOption);
+            MarkdownQuoteRegex = new Regex(@"^[^\S\n]*>[^\S\n]?.*$", RegexOptions.Multiline | RegexCompiledOption);
+            MarkdownStrongRegex = new Regex(@"(\*\*|__)(?=\S)(.+?)(?<=\S)\1", RegexCompiledOption);
+            MarkdownEmphasisRegex = new Regex(@"(?<!\*)\*(?!\s|\*)([^*\n]+?)(?<!\s)\*(?!\*)|(?<!_)_(?!\s|_)([^_\n]+?)(?<!\s)_(?!_)", RegexCompiledOption);
+        }
+
+        /// <summary>
+        /// Highlights Markdown text
+        /// </summary>
+        /// <param name="range"></param>
+        public virtual void MarkdownSyntaxHighlight(TextSelectionRange range)
+        {
+            range.tb.LeftBracket = '(';
+            range.tb.RightBracket = ')';
+            range.tb.LeftBracket2 = '[';
+            range.tb.RightBracket2 = ']';
+            range.tb.LeftBracket3 = '\x0';
+            range.tb.RightBracket3 = '\x0';
+            range.tb.BracketsHighlightStrategy = BracketsHighlightStrategy.Strategy2;
+
+            //clear everything we are about to repaint. ClearStyle(style) cannot be used here:
+            //highlighter styles are layered, and this pass applies several regexes that
+            //overlap, so stripping by reference always leaves stale slots behind.
+            range.ClearHighlighterStyles();
+
+            if (MarkdownCodeBlockRegex == null)
+                InitMarkdownRegex();
+
+            //exclusive application: each match replaces whatever an earlier pattern put on
+            //its chars. Fenced code first, then the line-level and inline rules.
+            range.SetStyleExclusive(StringStyle, MarkdownCodeBlockRegex);
+            range.SetStyleExclusive(NumberStyle, MarkdownFrontMatterRegex);
+            range.SetStyleExclusive(CommentStyle, MarkdownQuoteRegex);
+            range.SetStyleExclusive(BlueBoldStyle, MarkdownHeadingRegex);
+            range.SetStyleExclusive(TagNameStyle, MarkdownListMarkerRegex);
+            range.SetStyleExclusive(MaroonStyle, MarkdownImageRegex);
+            range.SetStyleExclusive(MaroonStyle, MarkdownLinkRegex);
+            range.SetStyleExclusive(StringStyle, MarkdownCodeSpanRegex);
+            range.SetStyleExclusive(BrownStyle, MarkdownEmphasisRegex);
+            range.SetStyleExclusive(BoldStyle, MarkdownStrongRegex);
+
+            //no folding for headings - headers are folding points only when desired; keep off.
+            range.ClearFoldingMarkers();
+        }
+
         /// <summary>
         /// Highlights JSON code
         /// </summary>
@@ -1541,6 +1620,8 @@ namespace FastColoredTextBoxNS.Text
                 "java" => Language.CSharp,
                 "js" => Language.JS,
                 "php" => Language.PHP,
+                "markdown" => Language.Markdown,
+                "md" => Language.Markdown,
                 _ => Language.Custom,
             };
             ;
@@ -1561,6 +1642,7 @@ namespace FastColoredTextBoxNS.Text
         PHP,
         JS,
         Lua,
-        JSON
+        JSON,
+        Markdown
     }
 }

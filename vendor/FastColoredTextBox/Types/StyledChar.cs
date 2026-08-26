@@ -60,6 +60,13 @@ namespace FastColoredTextBoxNS.Types
         /// <exception cref="InvalidOperationException">You cannot add more than {LastStyleIndex} styles to a character</exception>
         public Style AddStyle(Style style)
         {
+            //The vendored code incremented LastStyleIndex before any guard, so a char that had
+            //styles removed earlier (RemoveStyle decrements LastStyleIndex but leaves the array
+            //intact) ended up writing past the last occupied slot - and repeated highlighting
+            //passes eventually indexed outside the array. Guard before touching anything.
+            if (Styles != null && Styles.Contains(style))
+                return style;
+
             ++LastStyleIndex;
 
             // Update Readonly status if needed
@@ -72,19 +79,66 @@ namespace FastColoredTextBoxNS.Types
 
             // Initialize storage, fetch existing style or expand the storage array if needed
             if (Styles == null)
-                Styles = new Style[2];
-            else if (LastStyleIndex != 0)
             {
-                if (Styles.Contains(style))
-                    return style;
-                if (LastStyleIndex == Styles.Length)
-                    if (LastStyleIndex == int.MaxValue)
-                        throw new InvalidOperationException($"You cannot add more than {LastStyleIndex} styles to a character");
-                    else
-                        Array.Resize(ref Styles, Styles.Length > int.MaxValue / 2 ? int.MaxValue : Styles.Length * 2);
+                Styles = new Style[2];
+                LastStyleIndex = 0;
+            }
+            else if (LastStyleIndex == Styles.Length)
+            {
+                Array.Resize(ref Styles, Styles.Length > int.MaxValue / 2 ? int.MaxValue : Styles.Length * 2);
             }
 
             return Styles[LastStyleIndex] = style;
+        }
+
+        /// <summary>
+        /// Replaces the current styles outright. Unlike repeated AddStyle the count starts
+        /// from zero, so highlighters that repaint a char several times in one pass cannot
+        /// accumulate stale slots (several TextStyles on one char make the painter draw the
+        /// glyph once per style - the "duplicated characters" ghosting).
+        /// </summary>
+        public Style SetStyleEx(Style style)
+        {
+            if (style is null) return null;
+
+            Styles ??= new Style[2];
+            Styles[0] = style;
+            if (Styles.Length > 1) Array.Clear(Styles, 1, Styles.Length - 1);
+            LastStyleIndex = 0;
+
+            _ReadOnly = style is ReadOnlyStyle;
+            _Blinking = style is BlinkingStyle;
+
+            return style;
+        }
+
+        /// <summary>
+        /// Removes every non-framework style. Read-only and selection bookkeeping styles are
+        /// kept, everything a syntax highlighter may have layered on is dropped.
+        /// </summary>
+        public void ClearKeepingFrameworkStyles()
+        {
+            if (Styles is null) return;
+
+            int kept = 0;
+            _ReadOnly = false;
+            _Blinking = false;
+
+            foreach (Style style in Styles)
+            {
+                if (style is null) break;
+
+                if (style is ReadOnlyStyle or BlinkingStyle)
+                {
+                    Styles[kept++] = style;
+                    _ReadOnly |= style is ReadOnlyStyle;
+                    _Blinking |= style is BlinkingStyle;
+                }
+            }
+
+            for (int i = kept; i < Styles.Length; i++) Styles[i] = null;
+
+            LastStyleIndex = kept - 1;
         }
 
         /// <summary>

@@ -76,9 +76,24 @@ namespace ApiTester
             dataGridView1 = new DataGridView();
             contextMenuStrip1 = new ContextMenuStrip(components);
             copyToToolStripMenuItem1 = new ToolStripMenuItem();
-            splitContainer1_main_form = new SplitContainer();
             tabControl2 = new TabControl();
             tabPage3 = new TabPage();
+            splitContainer_main_sessions = new SplitContainer();
+            tabPage_notes = new TabPage();
+            splitContainer_notes = new SplitContainer();
+            dataGridView_notes = new DataGridView();
+            columnHeader_notes_name = new DataGridViewTextBoxColumn();
+            columnHeader_notes_updated = new DataGridViewTextBoxColumn();
+            contextMenuStrip_notes = new ContextMenuStrip(components);
+            menuItem_notes_new = new ToolStripMenuItem();
+            menuItem_notes_delete = new ToolStripMenuItem();
+            panel_note_edit = new Panel();
+            fastColoredTextBox_note = new FastColoredTextBoxNS.FastColoredTextBox();
+            panel_note_name = new Panel();
+            textBox_note_name = new TextBox();
+            button_notes_save = new Button();
+            label_notes_save_status = new Label();
+            label_notes_sync_status = new Label();
             splitContainer4 = new SplitContainer();
             textBox_filter = new TextBox();
             comboBox_filter_group = new ComboBox();
@@ -173,12 +188,22 @@ namespace ApiTester
             statusStrip_response_stats.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             contextMenuStrip1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)splitContainer1_main_form).BeginInit();
-            splitContainer1_main_form.Panel1.SuspendLayout();
-            splitContainer1_main_form.Panel2.SuspendLayout();
-            splitContainer1_main_form.SuspendLayout();
             tabControl2.SuspendLayout();
             tabPage3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer_main_sessions).BeginInit();
+            splitContainer_main_sessions.Panel1.SuspendLayout();
+            splitContainer_main_sessions.Panel2.SuspendLayout();
+            splitContainer_main_sessions.SuspendLayout();
+            tabPage_notes.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer_notes).BeginInit();
+            splitContainer_notes.Panel1.SuspendLayout();
+            splitContainer_notes.Panel2.SuspendLayout();
+            splitContainer_notes.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView_notes).BeginInit();
+            contextMenuStrip_notes.SuspendLayout();
+            panel_note_edit.SuspendLayout();
+            panel_note_name.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)fastColoredTextBox_note).BeginInit();
             ((System.ComponentModel.ISupportInitialize)splitContainer4).BeginInit();
             splitContainer4.Panel1.SuspendLayout();
             splitContainer4.Panel2.SuspendLayout();
@@ -856,30 +881,11 @@ namespace ApiTester
             copyToToolStripMenuItem1.Text = "Copy to";
             copyToToolStripMenuItem1.DropDownItemClicked += copyToToolStripMenuItem1_DropDownItemClicked;
             // 
-            // splitContainer1_main_form
-            // 
-            splitContainer1_main_form.Dock = DockStyle.Fill;
-            splitContainer1_main_form.FixedPanel = FixedPanel.Panel1;
-            splitContainer1_main_form.Location = new Point(0, 0);
-            splitContainer1_main_form.Margin = new Padding(4);
-            splitContainer1_main_form.Name = "splitContainer1_main_form";
-            // 
-            // splitContainer1_main_form.Panel1
-            // 
-            splitContainer1_main_form.Panel1.Controls.Add(tabControl2);
-            // 
-            // splitContainer1_main_form.Panel2
-            // 
-            splitContainer1_main_form.Panel2.Controls.Add(splitContainer6_main_right);
-            splitContainer1_main_form.Size = new Size(1990, 1393);
-            splitContainer1_main_form.SplitterDistance = 660;
-            splitContainer1_main_form.SplitterWidth = 5;
-            splitContainer1_main_form.TabIndex = 4;
-            // 
             // tabControl2
             // 
             tabControl2.Alignment = TabAlignment.Bottom;
             tabControl2.Controls.Add(tabPage3);
+            tabControl2.Controls.Add(tabPage_notes);
             tabControl2.Controls.Add(tabPage_files);
             tabControl2.Controls.Add(tabPage4);
             tabControl2.Dock = DockStyle.Fill;
@@ -893,8 +899,8 @@ namespace ApiTester
             tabControl2.SelectedIndexChanged += TabControl2_SelectedIndexChanged;
             // 
             // tabPage3
-            // 
-            tabPage3.Controls.Add(splitContainer4);
+            //
+            tabPage3.Controls.Add(splitContainer_main_sessions);
             tabPage3.Location = new Point(4, 4);
             tabPage3.Margin = new Padding(4);
             tabPage3.Name = "tabPage3";
@@ -903,11 +909,242 @@ namespace ApiTester
             tabPage3.TabIndex = 0;
             tabPage3.Text = "Sessions";
             tabPage3.UseVisualStyleBackColor = true;
-            // 
+            //
+            // splitContainer_main_sessions
+            //
+            splitContainer_main_sessions.Dock = DockStyle.Fill;
+            splitContainer_main_sessions.Location = new Point(4, 4);
+            splitContainer_main_sessions.Name = "splitContainer_main_sessions";
+            //
+            // splitContainer_main_sessions.Panel1
+            //
+            splitContainer_main_sessions.Panel1.Controls.Add(splitContainer4);
+            //
+            // splitContainer_main_sessions.Panel2
+            //
+            splitContainer_main_sessions.Panel2.Controls.Add(splitContainer6_main_right);
+            splitContainer_main_sessions.Size = new Size(644, 1352);
+            splitContainer_main_sessions.SplitterDistance = 660;
+            splitContainer_main_sessions.SplitterWidth = 5;
+            splitContainer_main_sessions.TabIndex = 0;
+            //
+            // tabPage_notes
+            //
+            tabPage_notes.Controls.Add(splitContainer_notes);
+            tabPage_notes.Location = new Point(4, 4);
+            tabPage_notes.Margin = new Padding(4);
+            tabPage_notes.Name = "tabPage_notes";
+            tabPage_notes.Padding = new Padding(4);
+            tabPage_notes.Size = new Size(652, 1360);
+            tabPage_notes.TabIndex = 3;
+            tabPage_notes.Text = "Notes";
+            tabPage_notes.UseVisualStyleBackColor = true;
+            //
+            // splitContainer_notes
+            //
+            splitContainer_notes.Dock = DockStyle.Fill;
+            splitContainer_notes.Location = new Point(4, 4);
+            splitContainer_notes.Name = "splitContainer_notes";
+            //
+            // splitContainer_notes.Panel1
+            //
+            splitContainer_notes.Panel1.Controls.Add(dataGridView_notes);
+            //
+            // splitContainer_notes.Panel2
+            //
+            splitContainer_notes.Panel2.Controls.Add(panel_note_edit);
+            splitContainer_notes.Size = new Size(644, 1352);
+            splitContainer_notes.SplitterDistance = 260;
+            splitContainer_notes.TabIndex = 0;
+            //
+            // dataGridView_notes
+            //
+            DataGridViewCellStyle dataGridViewCellStyleNotes = new DataGridViewCellStyle();
+            dataGridViewCellStyleNotes.BackColor = Color.PaleGoldenrod;
+            dataGridView_notes.AlternatingRowsDefaultCellStyle = dataGridViewCellStyleNotes;
+            dataGridView_notes.AllowUserToAddRows = false;
+            dataGridView_notes.AllowUserToResizeRows = false;
+            dataGridView_notes.AutoGenerateColumns = false;
+            dataGridView_notes.BackgroundColor = SystemColors.Control;
+            dataGridView_notes.BorderStyle = BorderStyle.None;
+            dataGridView_notes.CellBorderStyle = DataGridViewCellBorderStyle.None;
+            dataGridView_notes.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView_notes.Columns.AddRange(new DataGridViewColumn[] { columnHeader_notes_name, columnHeader_notes_updated });
+            dataGridView_notes.ContextMenuStrip = contextMenuStrip_notes;
+            DataGridViewCellStyle dataGridViewCellStyleNotesDefault = new DataGridViewCellStyle();
+            dataGridViewCellStyleNotesDefault.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyleNotesDefault.BackColor = SystemColors.Window;
+            dataGridViewCellStyleNotesDefault.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            dataGridViewCellStyleNotesDefault.ForeColor = SystemColors.ControlText;
+            dataGridViewCellStyleNotesDefault.SelectionBackColor = SystemColors.Highlight;
+            dataGridViewCellStyleNotesDefault.SelectionForeColor = SystemColors.HighlightText;
+            dataGridViewCellStyleNotesDefault.WrapMode = DataGridViewTriState.False;
+            dataGridView_notes.DefaultCellStyle = dataGridViewCellStyleNotesDefault;
+            dataGridView_notes.Dock = DockStyle.Fill;
+            dataGridView_notes.GridColor = SystemColors.Control;
+            dataGridView_notes.Location = new Point(0, 0);
+            dataGridView_notes.Margin = new Padding(1);
+            dataGridView_notes.MultiSelect = false;
+            dataGridView_notes.Name = "dataGridView_notes";
+            dataGridView_notes.ReadOnly = true;
+            dataGridView_notes.RowHeadersVisible = false;
+            dataGridView_notes.RowHeadersWidth = 51;
+            dataGridView_notes.RowTemplate.Height = 28;
+            dataGridView_notes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView_notes.Size = new Size(260, 1352);
+            dataGridView_notes.TabIndex = 0;
+            dataGridView_notes.VirtualMode = false;
+            dataGridView_notes.KeyDown += DataGridView_notes_KeyDown;
+            dataGridView_notes.SelectionChanged += DataGridView_notes_SelectionChanged;
+            //
+            // columnHeader_notes_name
+            //
+            columnHeader_notes_name.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            columnHeader_notes_name.HeaderText = "Name";
+            columnHeader_notes_name.Name = "columnHeader_notes_name";
+            columnHeader_notes_name.ReadOnly = true;
+            //
+            // columnHeader_notes_updated
+            //
+            columnHeader_notes_updated.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+            columnHeader_notes_updated.HeaderText = "Updated";
+            columnHeader_notes_updated.Name = "columnHeader_notes_updated";
+            columnHeader_notes_updated.ReadOnly = true;
+            columnHeader_notes_updated.Width = 150;
+            //
+            // contextMenuStrip_notes
+            //
+            contextMenuStrip_notes.ImageScalingSize = new Size(20, 20);
+            contextMenuStrip_notes.Items.AddRange(new ToolStripItem[] { menuItem_notes_new, menuItem_notes_delete });
+            contextMenuStrip_notes.Name = "contextMenuStrip_notes";
+            contextMenuStrip_notes.Size = new Size(150, 52);
+            //
+            // menuItem_notes_new
+            //
+            menuItem_notes_new.Name = "menuItem_notes_new";
+            menuItem_notes_new.Size = new Size(149, 24);
+            menuItem_notes_new.Text = "New note";
+            menuItem_notes_new.Click += MenuItem_notes_new_Click;
+            //
+            // menuItem_notes_delete
+            //
+            menuItem_notes_delete.Name = "menuItem_notes_delete";
+            menuItem_notes_delete.Size = new Size(149, 24);
+            menuItem_notes_delete.Text = "Delete note";
+            menuItem_notes_delete.Click += MenuItem_notes_delete_Click;
+            //
+            // panel_note_edit
+            //
+            //Docked children lay out from the last added to the first: the name strip takes the
+            //top, the status strip the bottom, and the editor fills what is left.
+            panel_note_edit.Controls.Add(fastColoredTextBox_note);
+            panel_note_edit.Controls.Add(panel_note_name);
+            panel_note_edit.Dock = DockStyle.Fill;
+            panel_note_edit.Location = new Point(0, 0);
+            panel_note_edit.Name = "panel_note_edit";
+            panel_note_edit.Size = new Size(380, 1352);
+            panel_note_edit.TabIndex = 0;
+            //
+            // fastColoredTextBox_note
+            //
+            fastColoredTextBox_note.AutoIndent = false;
+            fastColoredTextBox_note.AutoIndentChars = false;
+            fastColoredTextBox_note.AutoIndentExistingLines = false;
+            fastColoredTextBox_note.AutoScrollMinSize = new Size(31, 18);
+            fastColoredTextBox_note.BackBrush = null;
+            fastColoredTextBox_note.CharHeight = 18;
+            fastColoredTextBox_note.CharWidth = 10;
+            fastColoredTextBox_note.DisabledColor = Color.FromArgb(100, 180, 180, 180);
+            fastColoredTextBox_note.Dock = DockStyle.Fill;
+            fastColoredTextBox_note.Font = new Font("Courier New", 9.75F, FontStyle.Regular, GraphicsUnit.Point);
+            fastColoredTextBox_note.IsReplaceMode = false;
+            //Markdown highlighting is a vendored addition - see SyntaxHighlighter.MarkdownSyntaxHighlight.
+            fastColoredTextBox_note.Language = FastColoredTextBoxNS.Text.Language.Markdown;
+            fastColoredTextBox_note.Location = new Point(0, 55);
+            fastColoredTextBox_note.Name = "fastColoredTextBox_note";
+            fastColoredTextBox_note.Paddings = new Padding(0);
+            fastColoredTextBox_note.SelectionColor = Color.FromArgb(60, 0, 0, 255);
+            fastColoredTextBox_note.Size = new Size(380, 1297);
+            fastColoredTextBox_note.TabIndex = 2;
+            fastColoredTextBox_note.Zoom = 100;
+            fastColoredTextBox_note.TextChanged += FastColoredTextBox_note_TextChanged;
+            fastColoredTextBox_note.ZoomChanged += FastColoredTextBox_note_ZoomChanged;
+            //
+            // textBox_note_name
+            //
+            textBox_note_name.BorderStyle = BorderStyle.None;
+            textBox_note_name.Dock = DockStyle.Fill;
+            textBox_note_name.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            textBox_note_name.Location = new Point(0, 2);
+            textBox_note_name.Margin = new Padding(4);
+            textBox_note_name.Name = "textBox_note_name";
+            textBox_note_name.PlaceholderText = "Note name";
+            textBox_note_name.Size = new Size(120, 28);
+            textBox_note_name.TabIndex = 0;
+            textBox_note_name.TextChanged += TextBox_note_name_TextChanged;
+            //
+            // panel_note_name
+            //
+            //Docked children lay out from the last added to the first: Save takes the right
+            //edge, the two status labels sit left of it, and the name box fills the rest.
+            //New lives only in the grid's context menu.
+            panel_note_name.Controls.Add(textBox_note_name);
+            panel_note_name.Controls.Add(label_notes_save_status);
+            panel_note_name.Controls.Add(label_notes_sync_status);
+            panel_note_name.Controls.Add(button_notes_save);
+            panel_note_name.Dock = DockStyle.Top;
+            panel_note_name.Location = new Point(0, 0);
+            panel_note_name.Name = "panel_note_name";
+            panel_note_name.Padding = new Padding(6, 3, 0, 3);
+            panel_note_name.Size = new Size(380, 40);
+            panel_note_name.TabIndex = 1;
+            //
+            // label_notes_save_status
+            //
+            label_notes_save_status.Dock = DockStyle.Right;
+            label_notes_save_status.Font = new Font("Segoe UI", 9F);
+            label_notes_save_status.ForeColor = Color.ForestGreen;
+            label_notes_save_status.Location = new Point(120, 2);
+            label_notes_save_status.Name = "label_notes_save_status";
+            label_notes_save_status.Padding = new Padding(8, 0, 8, 0);
+            label_notes_save_status.Size = new Size(110, 36);
+            label_notes_save_status.TabIndex = 3;
+            label_notes_save_status.TextAlign = ContentAlignment.MiddleCenter;
+            //
+            // label_notes_sync_status
+            //
+            label_notes_sync_status.Dock = DockStyle.Right;
+            label_notes_sync_status.Font = new Font("Segoe UI", 9F);
+            label_notes_sync_status.ForeColor = SystemColors.GrayText;
+            label_notes_sync_status.Location = new Point(230, 2);
+            label_notes_sync_status.Name = "label_notes_sync_status";
+            label_notes_sync_status.Padding = new Padding(0, 0, 8, 0);
+            label_notes_sync_status.Size = new Size(100, 36);
+            label_notes_sync_status.TabIndex = 4;
+            label_notes_sync_status.TextAlign = ContentAlignment.MiddleCenter;
+            //
+            // button_notes_save
+            //
+            button_notes_save.BackColor = Color.DarkOrange;
+            button_notes_save.Dock = DockStyle.Right;
+            button_notes_save.FlatAppearance.BorderColor = Color.Black;
+            button_notes_save.FlatAppearance.BorderSize = 0;
+            button_notes_save.FlatAppearance.MouseDownBackColor = Color.Peru;
+            button_notes_save.FlatStyle = FlatStyle.Flat;
+            button_notes_save.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            button_notes_save.Location = new Point(330, 2);
+            button_notes_save.Margin = new Padding(6, 0, 0, 0);
+            button_notes_save.Name = "button_notes_save";
+            button_notes_save.Size = new Size(90, 36);
+            button_notes_save.TabIndex = 1;
+            button_notes_save.Text = "Save";
+            button_notes_save.UseVisualStyleBackColor = false;
+            button_notes_save.Click += Button_notes_save_Click;
+            //
             // splitContainer4
-            // 
+            //
             splitContainer4.Dock = DockStyle.Fill;
-            splitContainer4.Location = new Point(4, 4);
+            splitContainer4.Location = new Point(0, 0);
             splitContainer4.Name = "splitContainer4";
             splitContainer4.Orientation = Orientation.Horizontal;
             // 
@@ -1647,7 +1884,7 @@ namespace ApiTester
             // Form1
             // 
             ClientSize = new Size(1990, 1393);
-            Controls.Add(splitContainer1_main_form);
+            Controls.Add(tabControl2);
             DoubleBuffered = true;
             Icon = Assets.Icon("this_Icon.ico");
             Margin = new Padding(4);
@@ -1682,12 +1919,24 @@ namespace ApiTester
             statusStrip_response_stats.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             contextMenuStrip1.ResumeLayout(false);
-            splitContainer1_main_form.Panel1.ResumeLayout(false);
-            splitContainer1_main_form.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)splitContainer1_main_form).EndInit();
-            splitContainer1_main_form.ResumeLayout(false);
             tabControl2.ResumeLayout(false);
             tabPage3.ResumeLayout(false);
+            splitContainer_main_sessions.Panel1.ResumeLayout(false);
+            splitContainer_main_sessions.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer_main_sessions).EndInit();
+            splitContainer_main_sessions.ResumeLayout(false);
+            tabPage_notes.ResumeLayout(false);
+            splitContainer_notes.Panel1.ResumeLayout(false);
+            splitContainer_notes.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer_notes).EndInit();
+            splitContainer_notes.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dataGridView_notes).EndInit();
+            contextMenuStrip_notes.ResumeLayout(false);
+            panel_note_edit.ResumeLayout(false);
+            panel_note_edit.PerformLayout();
+            panel_note_name.ResumeLayout(false);
+            panel_note_name.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)fastColoredTextBox_note).EndInit();
             splitContainer4.Panel1.ResumeLayout(false);
             splitContainer4.Panel1.PerformLayout();
             splitContainer4.Panel2.ResumeLayout(false);
@@ -1713,7 +1962,7 @@ namespace ApiTester
         private System.Windows.Forms.Button button_request_send;
         private System.Windows.Forms.ComboBox comboBox_http_method;
         private System.Windows.Forms.DataGridView dataGridView1;
-        private System.Windows.Forms.SplitContainer splitContainer1_main_form;
+        private System.Windows.Forms.SplitContainer splitContainer_main_sessions;
         private System.Windows.Forms.ComboBox comboBox_certificates;
         private FastColoredTextBoxNS.FastColoredTextBox textBox_request_url;
         private System.Windows.Forms.TextBox textBox_filter;
@@ -1825,6 +2074,21 @@ namespace ApiTester
         private ToolStripTextBox toolStripTextBox_repeat;
         private ContextMenuStrip contextMenuStrip1;
         private ToolStripMenuItem copyToToolStripMenuItem1;
+        private TabPage tabPage_notes;
+        private SplitContainer splitContainer_notes;
+        private DataGridView dataGridView_notes;
+        private DataGridViewTextBoxColumn columnHeader_notes_name;
+        private DataGridViewTextBoxColumn columnHeader_notes_updated;
+        private ContextMenuStrip contextMenuStrip_notes;
+        private ToolStripMenuItem menuItem_notes_new;
+        private ToolStripMenuItem menuItem_notes_delete;
+        private Panel panel_note_edit;
+        private FastColoredTextBoxNS.FastColoredTextBox fastColoredTextBox_note;
+        private TextBox textBox_note_name;
+        private Panel panel_note_name;
+        private Button button_notes_save;
+        private Label label_notes_save_status;
+        private Label label_notes_sync_status;
     }
 }
 

@@ -38,27 +38,16 @@ namespace ApiTester
             nameof(Session.Dirty), nameof(Session.Uploaded), nameof(Session.Deleted)
         };
 
+        //Notes have no trailing body - the text travels inside the header. Everything but the
+        //local key and the sync flags crosses the wire.
+        private static readonly HashSet<string> NotSharedNote = new(StringComparer.Ordinal)
+        {
+            nameof(Note.Id), nameof(Note.Dirty), nameof(Note.Uploaded), nameof(Note.Deleted)
+        };
+
         public static byte[] Write(Session session)
         {
-            var map = TableMap.For(typeof(Session));
-
-            using var buffer = new MemoryStream();
-
-            using (var writer = new Utf8JsonWriter(buffer, HeaderOptions))
-            {
-                writer.WriteStartObject();
-
-                foreach (PropertyInfo property in map.Columns)
-                {
-                    if (NotShared.Contains(property.Name)) continue;
-
-                    WriteProperty(writer, TableMap.ColumnOf(property), property.PropertyType, property.GetValue(session));
-                }
-
-                writer.WriteEndObject();
-            }
-
-            byte[] header = buffer.ToArray();
+            byte[] header = WriteHeader(session, NotShared);
             byte[] body = session.ResponseBody ?? Array.Empty<byte>();
 
             var blob = new byte[HeaderPrefix + header.Length + body.Length];
@@ -70,6 +59,33 @@ namespace ApiTester
             return blob;
         }
 
+        public static byte[] WriteNote(Note note) => WriteHeader(note, NotSharedNote);
+
+        private static byte[] WriteHeader<
+            [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(TableMap.MappedMembers)] T>(
+            T item, HashSet<string> notShared)
+        {
+            var map = TableMap.For(typeof(T));
+
+            using var buffer = new MemoryStream();
+
+            using (var writer = new Utf8JsonWriter(buffer, HeaderOptions))
+            {
+                writer.WriteStartObject();
+
+                foreach (PropertyInfo property in map.Columns)
+                {
+                    if (notShared.Contains(property.Name)) continue;
+
+                    WriteProperty(writer, TableMap.ColumnOf(property), property.PropertyType, property.GetValue(item));
+                }
+
+                writer.WriteEndObject();
+            }
+
+            return buffer.ToArray();
+        }
+
         /// <summary>
         /// Rebuilds a session from its blob.
         /// </summary>
@@ -77,38 +93,72 @@ namespace ApiTester
         /// by something else must be skipped, not half applied.</returns>
         public static Session Read(byte[] blob)
         {
-            if (blob is null || blob.Length < HeaderPrefix) return null;
+            int headerLength = HeaderLengthOf(blob, out bool valid);
+            if (!valid) return null;
 
-            int headerLength = BinaryPrimitives.ReadInt32LittleEndian(blob);
-            if (headerLength < 0 || headerLength > blob.Length - HeaderPrefix) return null;
-
-            var session = new Session();
-            var map = TableMap.For(typeof(Session));
-
-            try
-            {
-                using var document = JsonDocument.Parse(new ReadOnlyMemory<byte>(blob, HeaderPrefix, headerLength));
-
-                if (document.RootElement.ValueKind != JsonValueKind.Object) return null;
-
-                foreach (PropertyInfo property in map.Columns)
-                {
-                    if (NotShared.Contains(property.Name)) continue;
-                    if (!document.RootElement.TryGetProperty(TableMap.ColumnOf(property), out JsonElement value)) continue;
-
-                    ReadProperty(property, session, value);
-                }
-            }
-            catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
-            {
-                return null;
-            }
+            var session = ReadHeader<Session>(blob, headerLength, NotShared);
+            if (session is null) return null;
 
             int bodyStart = HeaderPrefix + headerLength;
             session.ResponseBody = new byte[blob.Length - bodyStart];
             Array.Copy(blob, bodyStart, session.ResponseBody, 0, session.ResponseBody.Length);
 
             return session;
+        }
+
+        /// <summary>
+        /// Rebuilds a note from its blob. The whole note lives in the header - there is no
+        /// trailing body.
+        /// </summary>
+        /// <returns>The note, or null when the content is not in this format.</returns>
+        public static Note ReadNote(byte[] blob)
+        {
+            int headerLength = HeaderLengthOf(blob, out bool valid);
+            if (!valid) return null;
+
+            return ReadHeader<Note>(blob, headerLength, NotSharedNote);
+        }
+
+        private static int HeaderLengthOf(byte[] blob, out bool valid)
+        {
+            valid = false;
+
+            if (blob is null || blob.Length < HeaderPrefix) return 0;
+
+            int headerLength = BinaryPrimitives.ReadInt32LittleEndian(blob);
+            if (headerLength < 0 || headerLength > blob.Length - HeaderPrefix) return 0;
+
+            valid = true;
+            return headerLength;
+        }
+
+        private static T ReadHeader<
+            [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(TableMap.MappedMembers)] T>(
+            byte[] blob, int headerLength, HashSet<string> notShared) where T : new()
+        {
+            var item = new T();
+            var map = TableMap.For(typeof(T));
+
+            try
+            {
+                using var document = JsonDocument.Parse(new ReadOnlyMemory<byte>(blob, HeaderPrefix, headerLength));
+
+                if (document.RootElement.ValueKind != JsonValueKind.Object) return default;
+
+                foreach (PropertyInfo property in map.Columns)
+                {
+                    if (notShared.Contains(property.Name)) continue;
+                    if (!document.RootElement.TryGetProperty(TableMap.ColumnOf(property), out JsonElement value)) continue;
+
+                    ReadProperty(property, item, value);
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+            {
+                return default;
+            }
+
+            return item;
         }
 
         private static void WriteProperty(Utf8JsonWriter writer, string name, Type type, object value)
@@ -125,18 +175,18 @@ namespace ApiTester
             else if (type == typeof(float)) writer.WriteNumber(name, (float)value);
         }
 
-        private static void ReadProperty(PropertyInfo property, Session session, JsonElement value)
+        private static void ReadProperty(PropertyInfo property, object target, JsonElement value)
         {
             if (value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) return;
 
             Type type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
-            if (type == typeof(string)) property.SetValue(session, value.GetString());
-            else if (type == typeof(bool)) property.SetValue(session, value.ValueKind == JsonValueKind.True || (value.ValueKind == JsonValueKind.Number && value.GetInt32() != 0));
-            else if (type == typeof(int)) property.SetValue(session, value.GetInt32());
-            else if (type == typeof(long)) property.SetValue(session, value.GetInt64());
-            else if (type == typeof(double)) property.SetValue(session, value.GetDouble());
-            else if (type == typeof(float)) property.SetValue(session, value.GetSingle());
+            if (type == typeof(string)) property.SetValue(target, value.GetString());
+            else if (type == typeof(bool)) property.SetValue(target, value.ValueKind == JsonValueKind.True || (value.ValueKind == JsonValueKind.Number && value.GetInt32() != 0));
+            else if (type == typeof(int)) property.SetValue(target, value.GetInt32());
+            else if (type == typeof(long)) property.SetValue(target, value.GetInt64());
+            else if (type == typeof(double)) property.SetValue(target, value.GetDouble());
+            else if (type == typeof(float)) property.SetValue(target, value.GetSingle());
         }
 
         /// <summary>
