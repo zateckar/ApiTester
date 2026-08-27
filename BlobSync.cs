@@ -434,6 +434,15 @@ namespace ApiTester
             await sessionsConn.EnsureTableAsync<Note>();
             await sessionsConn.ExecuteAsync("create table if not exists SyncState (\"Key\" varchar primary key not null, \"Value\" varchar)");
 
+            //One-time repair: builds before the WriteNote framing fix published note blobs
+            //without the length prefix, which no reader accepts. Marking our uploaded notes
+            //dirty republishes them in the framed format on the next push.
+            if (!string.Equals(await GetSyncState("note-framing"), "1", StringComparison.Ordinal))
+            {
+                await sessionsConn.ExecuteAsync("update Note set Dirty = 1 where Uploaded = 1 and Deleted = 0");
+                await SetSyncState("note-framing", "1");
+            }
+
             if (!string.Equals(await GetSyncState("schema"), SyncSchemaVersion, StringComparison.Ordinal))
             {
                 //A column added by EnsureTableAsync starts out NULL; everything below reads

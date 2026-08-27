@@ -59,7 +59,16 @@ namespace ApiTester
             return blob;
         }
 
-        public static byte[] WriteNote(Note note) => WriteHeader(note, NotSharedNote);
+        public static byte[] WriteNote(Note note)
+        {
+            byte[] header = WriteHeader(note, NotSharedNote);
+
+            var blob = new byte[HeaderPrefix + header.Length];
+            BinaryPrimitives.WriteInt32LittleEndian(blob, header.Length);
+            header.CopyTo(blob, HeaderPrefix);
+
+            return blob;
+        }
 
         private static byte[] WriteHeader<
             [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(TableMap.MappedMembers)] T>(
