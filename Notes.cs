@@ -151,9 +151,19 @@ namespace ApiTester
             FillNotesGrid(reselect);
         }
 
+        //Row lookup by note id. Rows are rebuilt with the grid, and the per-keystroke save
+        //debounce and the new-note selection look one up by id - a linear scan per save was
+        //the alternative. Entries are valid only while the grid fill that produced them is
+        //current: notesGridGeneration bumps on every rebuild, and a stale entry fails the
+        //generation check rather than writing into a row the grid has already dropped.
+        private readonly Dictionary<int, (DataGridViewRow Row, int Generation)> noteRowById = new();
+        private int notesGridGeneration;
+
         private void FillNotesGrid(int? reselectId)
         {
             dataGridView_notes.Rows.Clear();
+            noteRowById.Clear();
+            notesGridGeneration++;
 
             foreach (NoteRow note in allNotes)
             {
@@ -162,12 +172,24 @@ namespace ApiTester
                     NoteUpdatedDisplay(note.UpdatedUtc));
 
                 dataGridView_notes.Rows[index].Tag = note.Id;
+                noteRowById[note.Id] = (dataGridView_notes.Rows[index], notesGridGeneration);
 
                 if (reselectId.HasValue && note.Id == reselectId.Value)
                 {
                     dataGridView_notes.Rows[index].Selected = true;
                 }
             }
+        }
+
+        private bool TryGetCurrentNoteRow(int noteId, out DataGridViewRow row)
+        {
+            row = null;
+
+            if (!noteRowById.TryGetValue(noteId, out (DataGridViewRow Row, int Generation) entry)) return false;
+            if (entry.Generation != notesGridGeneration) return false;
+
+            row = entry.Row;
+            return true;
         }
 
         private static string NoteUpdatedDisplay(string updatedUtc)
@@ -365,13 +387,11 @@ namespace ApiTester
             await sessionsConn.UpdateAsync(note);
 
             //Keep the grid's Updated cell honest without a full reload.
-            foreach (DataGridViewRow row in dataGridView_notes.Rows)
+            //Keep the grid's Updated cell honest without a full reload; if the grid was
+            //rebuilt since the note started editing, a reload scheduled elsewhere owns it.
+            if (TryGetCurrentNoteRow(note.Id, out DataGridViewRow dirtyRow))
             {
-                if (row.Tag is int rowId && rowId == note.Id)
-                {
-                    row.Cells[1].Value = NoteUpdatedDisplay(note.UpdatedUtc);
-                    break;
-                }
+                dirtyRow.Cells[1].Value = NoteUpdatedDisplay(note.UpdatedUtc);
             }
 
             RequestSync();
@@ -438,13 +458,9 @@ namespace ApiTester
 
             await ReloadNotesGridAsync();
 
-            foreach (DataGridViewRow row in dataGridView_notes.Rows)
+            if (TryGetCurrentNoteRow(note.Id, out DataGridViewRow newRow))
             {
-                if (row.Tag is int id && id == note.Id)
-                {
-                    row.Selected = true;
-                    break;
-                }
+                newRow.Selected = true;
             }
 
             textBox_note_name.Focus();

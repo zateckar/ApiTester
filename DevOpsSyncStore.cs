@@ -31,7 +31,9 @@ namespace ApiTester
         //Blob bodies of individual ticks and tombstones are tiny; the base64 and the JSON that
         //carries them enlarge them, and the push commits hold at most a handful of them after
         //the first sync. Two requests per changed object is fine here and keeps the code simple.
-        private static readonly HttpClient client = new();
+        //Timeout matches the Files client - a large encrypted pull must not be cut mid-download.
+        //Handler policy lives in SyncHttp.
+        private static readonly HttpClient client = SyncHttp.CreateClient();
 
         private readonly Form1 host;
 

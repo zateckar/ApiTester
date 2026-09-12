@@ -331,7 +331,10 @@ namespace ApiTester
     {
         //Its own client rather than the file tab's: a transfer is bounded by the user cancelling
         //it, and the shared client's per-round traffic keeps the default pool size adequate.
-        private static readonly HttpClient client = new();
+        //The default 100 s covers an entire response body including its download - a large
+        //row blob through a slow proxy can cross that. Bodies are bounded by the sync loop
+        //instead. Handler policy lives in SyncHttp.
+        private static readonly HttpClient client = SyncHttp.CreateClient();
 
         private readonly Form1 host;
 

@@ -21,8 +21,9 @@ namespace ApiTester
     {
         //Its own client rather than the sync's: a transfer is bounded by the user cancelling it,
         //not by a clock, and HttpClient's 100 second default covers the whole response including
-        //the body - long enough to abort a large file halfway through.
-        private static readonly HttpClient fileClient = new() { Timeout = Timeout.InfiniteTimeSpan };
+        //the body - long enough to abort a large file halfway through. Handler policy lives in
+        //SyncHttp.
+        private static readonly HttpClient fileClient = SyncHttp.CreateClient();
 
         //Below this a file goes up in one request; above it in blocks, so memory stays flat and
         //progress keeps moving on a file that takes a while.
@@ -51,20 +52,17 @@ namespace ApiTester
             return string.Join("/", segments);
         }
 
-        private static void EnsureBlobSuccess(HttpResponseMessage response, string what, bool allowMissing = false)
+        /// <summary>
+        /// Async all the way: reading the failure detail streams the error body, and doing
+        /// that on .GetAwaiter().GetResult() would block a UI thread or deadlock a drag thread.
+        /// </summary>
+        private static async Task EnsureBlobSuccess(HttpResponseMessage response, string what, bool allowMissing = false)
         {
             if (response.IsSuccessStatusCode) return;
             if (allowMissing && response.StatusCode == HttpStatusCode.NotFound) return;
 
-            throw new BlobFileException(what + " failed: " + ReadBlobFailureDetail(response));
+            throw new BlobFileException(what + " failed: " + await AzureBlobStore.BlobFailureDetail(response).ConfigureAwait(false));
         }
-
-        /// <summary>
-        /// Synchronous face of the shared detail reader: the transfer pipeline cannot await
-        /// inside EnsureBlobSuccess without reshaping every caller.
-        /// </summary>
-        private static string ReadBlobFailureDetail(HttpResponseMessage response)
-            => AzureBlobStore.BlobFailureDetail(response).GetAwaiter().GetResult();
 
         // ---------------------------------------------------------------- listing
 
@@ -166,7 +164,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-            EnsureBlobSuccess(response, "Listing \"" + prefix + "\"");
+            await EnsureBlobSuccess(response, "Listing \"" + prefix + "\"");
 
             var document = new XmlDocument { XmlResolver = null };
 
@@ -234,7 +232,7 @@ namespace ApiTester
 
                 using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-                EnsureBlobSuccess(response, "Upload of " + remotePath);
+                await EnsureBlobSuccess(response, "Upload of " + remotePath);
 
                 progress?.Invoke(info.Length);
                 return;
@@ -297,7 +295,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-            EnsureBlobSuccess(response, "Upload of " + blobPath);
+            await EnsureBlobSuccess(response, "Upload of " + blobPath);
         }
 
         private static async Task BlobPutBlockList(string blobPath, List<string> blockIds, CancellationToken ct)
@@ -325,7 +323,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-            EnsureBlobSuccess(response, "Upload of " + blobPath);
+            await EnsureBlobSuccess(response, "Upload of " + blobPath);
         }
 
         /// <summary>
@@ -342,7 +340,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-            EnsureBlobSuccess(response, "Download of " + remotePath);
+            await EnsureBlobSuccess(response, "Download of " + remotePath);
 
             using Stream content = await response.Content.ReadAsStreamAsync(ct);
             using var target = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.None, FileCopyBuffer, useAsync: true);
@@ -380,7 +378,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-            EnsureBlobSuccess(response, "Copy of " + sourcePath);
+            await EnsureBlobSuccess(response, "Copy of " + sourcePath);
 
             if (response.Headers.TryGetValues("x-ms-copy-status", out IEnumerable<string> status))
             {
@@ -412,7 +410,7 @@ namespace ApiTester
 
                 using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-                EnsureBlobSuccess(response, "Copy to " + destinationPath);
+                await EnsureBlobSuccess(response, "Copy to " + destinationPath);
 
                 if (!response.Headers.TryGetValues("x-ms-copy-status", out IEnumerable<string> status)) return;
 
@@ -441,7 +439,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-            EnsureBlobSuccess(response, "Delete of " + path, allowMissing: true);
+            await EnsureBlobSuccess(response, "Delete of " + path, allowMissing: true);
         }
 
         /// <summary>
@@ -462,7 +460,7 @@ namespace ApiTester
 
             using HttpResponseMessage response = await fileClient.SendAsync(request, ct);
 
-            EnsureBlobSuccess(response, "Creating folder " + folderPath);
+            await EnsureBlobSuccess(response, "Creating folder " + folderPath);
         }
 
         /// <summary>

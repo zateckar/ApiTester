@@ -159,6 +159,13 @@ namespace ApiTester
         public string RequestHttpVersion { get; set; }
         public int ResponseLength { get; set; }
         public int ResponseTime { get; set; }
+
+        /// <summary>
+        /// The response body hit the <see cref="ContentCap.MaxResponseBodyBytes"/> ceiling and
+        /// was cut. A truncated body is not a faithful copy of the response and nobody should
+        /// mistake it for one.
+        /// </summary>
+        public bool Truncated { get; set; }
         public string Note { get; set; }
         public string Application { get; set; }
         public string Group { get; set; }

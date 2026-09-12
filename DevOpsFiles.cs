@@ -40,7 +40,8 @@ namespace ApiTester
 
         //Same reasoning as the blob backend's unbounded client: a transfer is bounded by the
         //Cancel button, and a 100 second default would abort a large download halfway through.
-        private static readonly HttpClient client = new() { Timeout = Timeout.InfiniteTimeSpan };
+        //Handler policy lives in SyncHttp.
+        private static readonly HttpClient client = SyncHttp.CreateClient();
 
         private const int CopyBuffer = 256 * 1024;
 

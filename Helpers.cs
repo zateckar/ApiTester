@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
@@ -8,7 +9,6 @@ using System.Xml.Linq;
 
 namespace ApiTester
 {
-
     public partial class Form1 : Form
     {
         private static readonly JsonWriterOptions PrettyJsonOptions = new() { Indented = true };
@@ -26,12 +26,20 @@ namespace ApiTester
                 return output;
             }
 
-            try
+            //Only bodies that open with '<' can be XML. The old code ran XDocument.Parse over
+            //every body and caught the XmlException, which on a large JSON response means the
+            //parser walks the text before giving up - and a thrown exception per displayed row.
+            //JSON is still attempted for anything that is not XML, so scalar bodies ("x", 42)
+            //are detected exactly as before.
+            if (FirstContentChar(input) == '<')
             {
-                string[,] output = { { "XML", XDocument.Parse(input).ToString() } };
-                return output;
+                try
+                {
+                    string[,] output = { { "XML", XDocument.Parse(input).ToString() } };
+                    return output;
+                }
+                catch (System.Xml.XmlException) { }
             }
-            catch (Exception) { }
 
             try
             {
@@ -55,16 +63,36 @@ namespace ApiTester
             return output1;
         }
 
+        /// <summary>
+        /// The first character that is not whitespace or a byte order mark, or '\0' when the
+        /// text has none. Only used to tell an XML body from anything else.
+        /// </summary>
+        private static char FirstContentChar(string input)
+        {
+            foreach (char c in input)
+            {
+                //A BOM decoded into the string is not whitespace, and would otherwise be
+                //taken for the body's first real character.
+                if (c == '﻿' || char.IsWhiteSpace(c)) continue;
+
+                return c;
+            }
+
+            return '\0';
+        }
+
         public static Version ConvertHttpVersion(string customVersion)
         {
-            Version result = new Version();
+            //Unrecognised text used to fall through as Version 0.0, which then went onto the
+            //request alongside VersionPolicy.RequestVersionExact and failed inside the handler
+            //rather than here. 1.1 is what HttpRequestMessage defaults to anyway.
+            if (string.IsNullOrEmpty(customVersion)) return HttpVersion.Version11;
 
-            if (customVersion.Contains("HTTP 1.0")) result = new Version(1, 0);
-            if (customVersion.Contains("HTTP 1.1")) result = new Version(1, 1);
-            if (customVersion.Contains("HTTP 2.0")) result = new Version(2, 0);
-            if (customVersion.Contains("HTTP 3.0")) result = new Version(3, 0);
+            if (customVersion.Contains("HTTP 1.0", StringComparison.Ordinal)) return HttpVersion.Version10;
+            if (customVersion.Contains("HTTP 2.0", StringComparison.Ordinal)) return HttpVersion.Version20;
+            if (customVersion.Contains("HTTP 3.0", StringComparison.Ordinal)) return HttpVersion.Version30;
 
-            return result;
+            return HttpVersion.Version11;
         }
 
         //Response bodies have been stored three ways over the life of this app. New rows are

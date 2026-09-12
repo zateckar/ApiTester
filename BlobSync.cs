@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -1085,7 +1086,28 @@ namespace ApiTester
             //needed anywhere else.
             if (syncUndecryptable == 0 && !pullIncomplete)
             {
-                foreach (var (instance, seq) in seen) await SetSyncState("tick:" + instance, seq);
+                //One multi-row upsert rather than a semaphore round-trip per instance.
+                if (seen.Count > 0)
+                {
+                    var sql = new StringBuilder("insert into SyncState (\"Key\", \"Value\") values ");
+                    var pms = new List<(string, object)>();
+
+                    int i = 0;
+                    foreach (var (instance, seq) in seen)
+                    {
+                        if (i > 0) sql.Append(", ");
+                        string k = "$k" + i.ToString(CultureInfo.InvariantCulture);
+                        string v = "$v" + i.ToString(CultureInfo.InvariantCulture);
+                        sql.Append('(').Append(k).Append(", ").Append(v).Append(')');
+                        pms.Add((k, "tick:" + instance));
+                        pms.Add((v, seq));
+                        i++;
+                    }
+
+                    sql.Append(" on conflict(\"Key\") do update set \"Value\" = excluded.\"Value\"");
+
+                    await sessionsConn.ExecuteAsync(sql.ToString(), pms.ToArray());
+                }
 
                 syncPulledThisRun = true;
             }
@@ -1175,11 +1197,13 @@ namespace ApiTester
 
             if (!string.IsNullOrEmpty(updated))
             {
-                if (!SyncCrypto.TryUnprotectText(entry.Meta(MetaName), syncKey, uid + "|" + MetaName, out string name, hex: _settings.SyncWithDevOps))
+                if (!SyncCrypto.TryUnprotectText(entry.Meta(MetaName), syncKey, uid + "|" + MetaName, out string name, out bool nameEncrypted, hex: _settings.SyncWithDevOps))
                 {
                     syncUndecryptable++;
                     return false;
                 }
+
+                if (!nameEncrypted) SyncLog("Accepted plaintext name for " + uid + " - no key is set; a peer could have substituted it.");
 
                 pulled.Name = name;
                 pulled.UpdatedUtc = updated;
@@ -1228,11 +1252,13 @@ namespace ApiTester
                 return false;
             }
 
-            if (!SyncCrypto.TryUnprotectText(entry.Meta(MetaName), syncKey, uid + "|" + MetaName, out string name, hex: _settings.SyncWithDevOps))
+            if (!SyncCrypto.TryUnprotectText(entry.Meta(MetaName), syncKey, uid + "|" + MetaName, out string name, out bool nameEncrypted2, hex: _settings.SyncWithDevOps))
             {
                 syncUndecryptable++;
                 return false;
             }
+
+            if (!nameEncrypted2) SyncLog("Accepted plaintext name for " + uid + " - no key is set; a peer could have substituted it.");
 
             await sessionsConn.ExecuteAsync(
                 "update Note set Name = $name, Text = $text, UpdatedUtc = $upd, Dirty = 0, Uploaded = 1 where Id = $id",
@@ -1252,8 +1278,8 @@ namespace ApiTester
         {
             group = string.Empty;
 
-            return SyncCrypto.TryUnprotectText(entry.Meta(MetaNote), syncKey, uid + "|" + MetaNote, out note, hex: _settings.SyncWithDevOps)
-                && SyncCrypto.TryUnprotectText(entry.Meta(MetaGroup), syncKey, uid + "|" + MetaGroup, out group, hex: _settings.SyncWithDevOps);
+            return SyncCrypto.TryUnprotectText(entry.Meta(MetaNote), syncKey, uid + "|" + MetaNote, out note, out _, hex: _settings.SyncWithDevOps)
+                && SyncCrypto.TryUnprotectText(entry.Meta(MetaGroup), syncKey, uid + "|" + MetaGroup, out group, out _, hex: _settings.SyncWithDevOps);
         }
 
         private async Task<bool> PullRow(SyncEntry entry, string uid)
@@ -1331,16 +1357,32 @@ namespace ApiTester
         /// </summary>
         internal void StoreLog(string message) => SyncLog(message);
 
+        //A busy round logs one line per blob touched. Buffer them and flush in one write
+        //instead of paying an open/write/close of sync.log per line on the UI thread.
+        private readonly List<string> syncLogBacklog = new();
+        private bool syncLogFlushScheduled;
+
+        //One writer at a time: without it, a fresh burst racing the delayed flush interleaves
+        //AppendAllLines on the same file and produces torn lines.
+        private readonly SemaphoreSlim syncLogWriteGate = new(1, 1);
+
+        //Beyond this the oldest content is dropped on the next write - the sync runs for as
+        //long as the app does, and the file would otherwise grow without bound.
+        private const long SyncLogMaxBytes = 4L * 1024 * 1024;
+
         private void SyncLog(string message)
         {
-            try
+            bool schedule;
+
+            lock (syncLogBacklog)
             {
-                //Mirror to a plain file next to the session database so sync behaviour can be
-                //inspected without the window. Best-effort: logging must never break the sync.
-                string path = Path.Combine(AppContext.BaseDirectory, "sync.log");
-                File.AppendAllText(path, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff ", CultureInfo.InvariantCulture) + message + Environment.NewLine);
+                syncLogBacklog.Add(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff ", CultureInfo.InvariantCulture) + message);
+
+                schedule = !syncLogFlushScheduled;
+                syncLogFlushScheduled = true;
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+
+            if (schedule) _ = FlushSyncLogSoon();
 
             if (IsDisposed || Disposing) return;
 
@@ -1352,6 +1394,90 @@ namespace ApiTester
                 listBox_blob.Items.Insert(0, DateTime.Now.ToString("T", CultureInfo.CurrentCulture) + "  " + message);
             }
             catch (ObjectDisposedException) { }
+        }
+
+        private async Task FlushSyncLogSoon()
+        {
+            //Coalesce the burst a store operation produces.
+            try { await Task.Delay(250).ConfigureAwait(false); } catch (TaskCanceledException) { }
+
+            //Broad catch, not the old IOException-only filter: this task is fire-and-forget,
+            //and any escaping fault is an unobserved exception that can take the process down
+            //at GC time. Logging must genuinely never break the sync.
+            try
+            {
+                await syncLogWriteGate.WaitAsync().ConfigureAwait(false);
+
+                try
+                {
+                    string[] lines;
+
+                    lock (syncLogBacklog)
+                    {
+                        lines = syncLogBacklog.ToArray();
+                        syncLogBacklog.Clear();
+                        syncLogFlushScheduled = false;
+                    }
+
+                    if (lines.Length == 0) return;
+
+                    //Mirror to a plain file next to the session database so sync behaviour can be
+                    //inspected without the window.
+                    string path = Path.Combine(AppContext.BaseDirectory, "sync.log");
+
+                    if (File.Exists(path) && new FileInfo(path).Length > SyncLogMaxBytes)
+                    {
+                        //Keep the recent tail, not the head: a failure is debugged from its
+                        //newest lines. Rotation keeps exactly one previous file (.1); older
+                        //history is discarded by design - this log is a debugging aid, not an
+                        //audit trail.
+                        string rotated = path + ".1";
+                        File.Copy(path, rotated, overwrite: true);
+                        File.WriteAllText(path, string.Empty);
+                    }
+
+                    File.AppendAllLines(path, lines);
+                }
+                finally
+                {
+                    syncLogWriteGate.Release();
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// Writes whatever the backlog still holds, synchronously. Called from the closing
+        /// path: the delayed flush would otherwise drop a sync error logged in the last
+        /// quarter second - exactly the line a user needs after a failure at shutdown.
+        /// </summary>
+        internal void FlushSyncLogNow()
+        {
+            try
+            {
+                syncLogWriteGate.Wait();
+
+                try
+                {
+                    string[] lines;
+
+                    lock (syncLogBacklog)
+                    {
+                        if (syncLogBacklog.Count == 0) return;
+
+                        lines = syncLogBacklog.ToArray();
+                        syncLogBacklog.Clear();
+                        syncLogFlushScheduled = false;
+                    }
+
+                    File.AppendAllLines(Path.Combine(AppContext.BaseDirectory, "sync.log"), lines);
+                }
+                finally
+                {
+                    syncLogWriteGate.Release();
+                }
+            }
+            catch (Exception) { }
         }
 
         private void SetSyncStatus(string text, string tooltip)

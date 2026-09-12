@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Windows.Forms;
 
 namespace ApiTester
@@ -19,6 +20,11 @@ namespace ApiTester
             {
                 try { System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "crash.log"), e.ExceptionObject?.ToString()); } catch { }
             };
+            //Legacy code pages - windows-1250 above all - are not in the box. Registered here
+            //so Encoding.GetEncoding resolves whatever charset a request header asks for and
+            //whatever a response declares, instead of falling back to UTF-8 and mangling it.
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             Application.EnableVisualStyles();
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.Run(new Form1());

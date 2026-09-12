@@ -546,6 +546,7 @@ namespace ApiTester
 
                     int inserted = 0;
                     int skipped = 0;
+                    var toInsert = new List<Session>();
 
                     foreach (Session s in imported)
                     {
@@ -573,9 +574,13 @@ namespace ApiTester
                         s.Uploaded = false;
                         s.Deleted = false;
 
-                        await sessionsConn.InsertAsync(s);
+                        toInsert.Add(s);
                         inserted++;
                     }
+
+                    //One transaction for the whole batch - per-row inserts pay a journal fsync
+                    //each, which dominates the import on any sizeable database.
+                    await sessionsConn.InsertManyAsync(toInsert);
 
                     CursorWait(false);
 

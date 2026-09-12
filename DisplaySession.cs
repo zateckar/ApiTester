@@ -129,7 +129,10 @@ namespace ApiTester
                 }
 
 
-                // Request/response statistics
+                // Request/response statistics. Clear adds and resizes repaint per item without
+                // this; the list fills on every row change, so wrap the whole refill.
+                listView1.BeginUpdate();
+
                 listView1.Clear();
                 listView1.View = View.Details;
                 listView1.FullRowSelect = true;
@@ -174,6 +177,8 @@ namespace ApiTester
                 listView1.Columns[1].AutoResize(ColumnHeaderAutoResizeStyle.ColumnContent);
                 listView1.Columns[1].Width = listView1.Columns[1].Width + 15;
                 listView1.Columns[1].TextAlign = HorizontalAlignment.Right;
+
+                listView1.EndUpdate();
             }
             finally
             {

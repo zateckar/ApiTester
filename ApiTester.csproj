@@ -79,7 +79,11 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.2" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.50.3" />
     <PackageReference Include="SQLitePCLRaw.core" Version="3.0.2" />
-    <!-- Response bodies are compressed with BrotliStream from the in-box System.IO.Compression. -->
+    <!-- windows-1250 and the other legacy code pages come from CodePagesEncodingProvider, which
+         lives in the System.Text.Encoding.CodePages assembly of the shared framework - the NuGet
+         package of the same name is a no-op here and only earns NU1510, so it is not referenced.
+         Program.cs still has to register the provider; see the comment there.
+         Response bodies are compressed with BrotliStream from the in-box System.IO.Compression. -->
   </ItemGroup>
 
   <!-- Patch = commits since the last version tag, or the total commit count when there is

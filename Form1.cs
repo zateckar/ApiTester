@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Globalization;
 using System.Reflection;
@@ -20,7 +21,6 @@ namespace ApiTester
     {
         private readonly SqliteStore settingsConn = new("settings.sqlite");
         private SqliteStore sessionsConn;
-        private static ServerCertificate serverCertificate = new();
         private static Setting _settings = new();
 
         /// <summary>Read-only access for the sync stores - the profile the sync runs against.</summary>
@@ -42,6 +42,10 @@ namespace ApiTester
 
         private string textFilter = string.Empty;
         private string groupFilter = string.Empty;
+
+        //Restarted on every keystroke in the filter box; the rebuild happens once the typing
+        //pauses. Created here rather than in the constructor so the field is never null.
+        private System.Windows.Forms.Timer filterDebounce;
 
         /// <summary>
         /// One grid row's worth of a session. Mirrors the columns created in CreateGridColumns.
@@ -269,6 +273,9 @@ namespace ApiTester
 
             CreateGridColumns();
 
+            filterDebounce = NewFilterDebounceTimer();
+            RequestInFlight(false);
+
             //No DisplayMember: the combo holds ProfileItem, whose ToString is the profile name.
             //DisplayMember goes through the binding stack, which is unavailable when trimmed.
 
@@ -366,6 +373,10 @@ namespace ApiTester
                 //Last chance to publish this session's changes; whatever is left stays marked
                 //dirty and goes out on the next start.
                 await FlushSyncOnClose();
+
+                //The delayed sync-log flush drops anything logged in the last 250 ms -
+                //which at shutdown is exactly the failure line worth keeping.
+                FlushSyncLogNow();
             }
             catch (Exception)
             {
@@ -454,6 +465,16 @@ namespace ApiTester
         /// Declares the grid's columns once. Nothing is auto generated from a data source,
         /// so the column set and order are fixed here rather than by a DataTable's schema.
         /// </summary>
+        //DataGridViewCell.Clone() does not call new - it does Activator.CreateInstance(GetType()),
+        //and DataGridViewRow.Clone() clones the row's header cell the same way. ILC has no way to
+        //see that call reaching these types, so it publishes them without invokable constructor
+        //metadata and the clone fails at run time with "No parameterless constructor defined for
+        //type 'System.Windows.Forms.DataGridViewRowHeaderCell'" - a trimmed-build-only crash on
+        //row delete, since deleting is what makes the grid clone a row. Rooting the constructors
+        //costs three types' worth of metadata and nothing at run time.
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(DataGridViewRowHeaderCell))]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(DataGridViewColumnHeaderCell))]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(DataGridViewTextBoxCell))]
         private void CreateGridColumns()
         {
             dataGridView1.AutoGenerateColumns = false;
@@ -514,6 +535,8 @@ namespace ApiTester
             {
                 Name = "Group", HeaderText = "Group", ValueType = typeof(string), Visible = false
             });
+
+            statusCodeColumnIndex = dataGridView1.Columns["ResponseStatusCode"].Index;
         }
 
         //Reads what OnlyDuplicates compares. Runs once per toggle-on and after any session
@@ -631,7 +654,12 @@ namespace ApiTester
         private async Task AppendSessionRow(Session session)
         {
             allRows.Add(SessionRow.From(session));
-            duplicatesKeys = null;
+
+            //Add the one new key rather than dropping the cache: nulling it made the next
+            //rebuild re-read the request of every stored session, and a repeat run of 100 did
+            //that 100 times. Everything the projection selects is on the session already.
+            duplicatesKeys?.TryAdd(session.Id, (session.UriQuery, session.RequestHeaders, session.RequestBody));
+
             await RefreshGrid();
         }
 
@@ -709,6 +737,14 @@ namespace ApiTester
                         pending.Shown = true;
                         allRows.Add(pending.Row);
                         await RefreshGrid();
+
+                        //The placeholder is the row the user is waiting on, so it takes the
+                        //selection and scrolls itself into view. Only as it appears - grabbing
+                        //the selection back on every tick would fight a user who moved off it.
+                        //RowEnter ignores a pending row, so the panes keep the session they show.
+                        //Filtered out, or already finished during the refresh: nothing to select.
+                        int shownIndex = viewRows.FindIndex(r => r.Id == pending.Row.Id);
+                        if (shownIndex >= 0) SelectViewRow(shownIndex);
                     }
                     else
                     {
@@ -728,7 +764,11 @@ namespace ApiTester
         /// Drops the placeholder. Called from the request's finally block, and idempotent so a
         /// request that failed early is not removed twice.
         /// </summary>
-        private async void EndPendingRow(PendingRequest pending)
+        /// <remarks>
+        /// Task, not void: the request's finally awaits it, so a failed view rebuild surfaces
+        /// on the caller and cannot leave a stale placeholder in the grid.
+        /// </remarks>
+        private async Task EndPendingRow(PendingRequest pending)
         {
             if (pending is null || pending.Finished) return;
 
@@ -781,14 +821,11 @@ namespace ApiTester
             //is muted here and the row that was current is put back afterwards.
             suppressRowEnterDisplay = true;
 
-            int currentId = 0;
-
-            if (dataGridView1.CurrentCell is not null)
-            {
-                currentId = ViewRow(dataGridView1.CurrentCell.RowIndex)?.Id ?? 0;
-            }
-
-            int currentIndex = dataGridView1.CurrentCell?.RowIndex ?? 0;
+            //CurrentCell reads Rows[i] and unshares that row; CurrentCellAddress is the same
+            //position as a Point and leaves it shared. Y is -1 when there is no current cell,
+            //which ViewRow rejects and the Clamp below folds to the first row.
+            int currentIndex = dataGridView1.CurrentCellAddress.Y;
+            int currentId = ViewRow(currentIndex)?.Id ?? 0;
 
             //Only a stored session or a live placeholder is worth putting back. A group
             //header's id collides with neither, and its row is rebuilt from scratch with
@@ -803,7 +840,10 @@ namespace ApiTester
 
                 if (currentIsReal) restoredIndex = viewRows.FindIndex(r => r.Id == currentId);
 
-                if (restoredIndex >= 0) SelectViewRow(restoredIndex);
+                //No scrolling: this is a repaint, not a move. The row was already current, and
+                //snapping the view back onto it would pull the grid out from under a user who
+                //has scrolled elsewhere while a sync brought something in.
+                if (restoredIndex >= 0) SelectViewRow(restoredIndex, scrollIntoView: false);
             }
             finally
             {
@@ -814,20 +854,95 @@ namespace ApiTester
             //instance. Move to where it was and let RowEnter load whatever is there now.
             if (restoredIndex < 0 && dataGridView1.RowCount > 0)
             {
-                SelectViewRow(Math.Clamp(currentIndex, 0, dataGridView1.RowCount - 1));
+                SelectViewRow(Math.Clamp(currentIndex, 0, dataGridView1.RowCount - 1), scrollIntoView: false);
             }
         }
 
         /// <summary>
-        /// Selects one virtual row and makes it current. SetSelectedRowCore, the API that keeps
-        /// the row shared, is protected; Rows[i].Selected materializes just this row, which is
-        /// acceptable for the row or two a user ever keeps selected.
+        /// Selects one virtual row and makes it current. The row must stay shared - reading
+        /// Rows[i] on a re-added shared row goes through GetRowDisplayRectangle, which tries
+        /// Activator.CreateInstance&lt;RowTemplate&gt;() and dies on RowHeaderCell having no
+        /// parameterless ctor. SetSelectedRowCore only takes row indexes, so there is no
+        /// unsharing anywhere.
         /// </summary>
-        private void SelectViewRow(int index)
+        //Both selection APIs are protected, and this grid is a plain DataGridView - there is
+        //no derived type to expose them. The MethodInfos are resolved once: InvokeMember would
+        //redo the name lookup on every filter keystroke and every pending-row tick, and a
+        //misspelled name would fail lazily somewhere inside a refresh instead of here.
+        private static readonly MethodInfo selectRowCoreMethod =
+            typeof(DataGridView).GetMethod("SetSelectedRowCore", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingMethodException(nameof(DataGridView), "SetSelectedRowCore");
+
+        private static readonly MethodInfo setCurrentCellCoreMethod =
+            typeof(DataGridView).GetMethod("SetCurrentCellAddressCore", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingMethodException(nameof(DataGridView), "SetCurrentCellAddressCore");
+
+        private void SelectViewRow(int index, bool scrollIntoView = true)
         {
             dataGridView1.ClearSelection();
-            dataGridView1.CurrentCell = dataGridView1[dataGridView1.Columns["Note"].Index, index];
-            dataGridView1.Rows[index].Selected = true;
+
+            //SetCurrentCellAddressCore's argument list is a private contract pinned to the
+            //targeted runtime (.NET 8: columnIndex, rowIndex, setAnchorCellAddress,
+            //validateCurrentCell, throughMouseClick). A runtime that reorders or retypes
+            //these throws on startup, not silently selects the wrong cell.
+            try
+            {
+                //SetSelectedRowCore only takes row indexes, so there is no unsharing anywhere.
+                selectRowCoreMethod.Invoke(dataGridView1, new object[] { index, true });
+
+                //SetCurrentCellAddressCore never touches Rows[i]; it cannot unshare the row either.
+                setCurrentCellCoreMethod.Invoke(dataGridView1, new object[] { dataGridView1.Columns["Note"].Index, index, true, false, false });
+            }
+            catch (TargetInvocationException ex)
+            {
+                InvokeInner(ex);
+                throw; //Unreachable - InvokeInner always throws.
+            }
+            catch (ArgumentException ex)
+            {
+                //A bad index or the wrong overload shape; with raw Invoke this arrives as an
+                //opaque fault inside a filter keystroke or a pending-row tick.
+                throw new InvalidOperationException(
+                    "SelectViewRow(" + index + ") failed - row count is " + dataGridView1.RowCount
+                    + " and the runtime's DataGridView internals may have changed.", ex);
+            }
+
+            if (scrollIntoView) ScrollRowIntoView(index);
+
+            static void InvokeInner(TargetInvocationException ex)
+            {
+                //Unwrap so the caller sees the exception the grid actually raised.
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
+            }
+        }
+
+        /// <summary>
+        /// Brings a row into the visible area, doing nothing when it is already fully there.
+        /// The public CurrentCell setter scrolls before it moves the current cell;
+        /// SetCurrentCellAddressCore, which <see cref="SelectViewRow"/> has to use instead to
+        /// keep the row shared, does not - so without this the newest row is current and
+        /// selected on load while the grid still shows the oldest one at the top.
+        /// </summary>
+        private void ScrollRowIntoView(int index)
+        {
+            if (index < 0 || index >= dataGridView1.RowCount) return;
+
+            int first = dataGridView1.FirstDisplayedScrollingRowIndex;
+
+            //Fully displayed rows only - a row clipped by the bottom edge is not in view.
+            if (first >= 0 && index >= first && index < first + dataGridView1.DisplayedRowCount(false)) return;
+
+            try
+            {
+                //The target becomes the topmost row, or as close to it as the rows below allow:
+                //the grid clamps the scroll, so the last row lands at the bottom as expected.
+                dataGridView1.FirstDisplayedScrollingRowIndex = index;
+            }
+            catch (InvalidOperationException)
+            {
+                //No room for displayed rows yet (the grid has not been laid out, or is collapsed
+                //behind the splitter). The row stays current; the next repaint shows it.
+            }
         }
 
         private void DataGridView1_CellValueNeeded(object sender, DataGridViewCellValueEventArgs e)
@@ -893,6 +1008,14 @@ namespace ApiTester
 
         private async void Button_request_send_Click(object sender, EventArgs e)
         {
+            //One button, both jobs: while a request is in flight it is the way to stop it.
+            //A second Send would otherwise queue behind the first with no way to intervene.
+            if (requestCts is not null)
+            {
+                CancelRequest();
+                return;
+            }
+
             await SendRequestConsolidate();
         }
 
@@ -906,6 +1029,45 @@ namespace ApiTester
             }
         }
 
+        /// <summary>
+        /// Cancels the request in flight, if there is one. Non-null only between the send
+        /// starting and its finally clearing it, so it doubles as "is one running".
+        /// </summary>
+        private CancellationTokenSource requestCts;
+
+        private static readonly Color SendButtonColor = Color.DarkOrange;
+        private static readonly Color CancelButtonColor = Color.Firebrick;
+
+        //Owned here rather than dropped on the designer: it exists only to explain the send
+        //button's two states.
+        private readonly ToolTip sendButtonTip = new();
+
+        private void CancelRequest() => requestCts?.Cancel();
+
+        /// <summary>
+        /// Esc stops a request from anywhere in the window. ProcessCmdKey rather than a KeyDown
+        /// handler: the editors and the grid all consume their own keys, and the send button is
+        /// rarely what has focus while the user is waiting.
+        /// </summary>
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Escape && requestCts is not null)
+            {
+                CancelRequest();
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private void RequestInFlight(bool inFlight)
+        {
+            button_request_send.BackColor = inFlight ? CancelButtonColor : SendButtonColor;
+
+            sendButtonTip.SetToolTip(button_request_send,
+                inFlight ? "Cancel the request in flight (Esc)" : "Send the request (Ctrl+R)");
+        }
+
         public async Task SendRequestConsolidate()
         {
             if (!int.TryParse(toolStripTextBox_repeat.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out int repeat) || repeat < 1)
@@ -914,21 +1076,45 @@ namespace ApiTester
                 return;
             }
 
+            //Already sending - Send is Cancel until the current run finishes.
+            if (requestCts is not null) return;
+
+            //One source for the whole loop: on a repeat run, cancelling means stop sending,
+            //not skip this one and carry on with the other 99.
+            using var cts = new CancellationTokenSource();
+            requestCts = cts;
+
+            RequestInFlight(true);
             CursorWait(true);
 
             try
             {
                 for (int y = 0; y < repeat; y++)
                 {
+                    if (cts.IsCancellationRequested) break;
+
+                    bool last = y == repeat - 1;
+
+                    //Only the last iteration displays the session it saved and collects timing.
+                    //On every earlier one DisplaySession would re-parse and re-indent both
+                    //bodies on the UI thread only for the next iteration to overwrite them,
+                    //and the telemetry would be overwritten before anyone could read it.
                     await SendRequest(
                         textBox_request_body.Text,
                         textBox_request_headers.Text,
                         comboBox_http_method.Text,
                         textBox_request_url.Text,
                         toolStripComboBox_http_version.Text,
-                        comboBox_certificates.Text
+                        comboBox_certificates.Text,
+                        cts.Token,
+                        collectTelemetry: last,
+                        display: last
                         );
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                //Cancelling is a normal way for this to end, not a failure to report.
             }
             catch (Exception ex)
             {
@@ -936,6 +1122,11 @@ namespace ApiTester
             }
             finally
             {
+                //Cleared before the using disposes it, so CancelRequest can never reach a
+                //disposed source - both run on the UI thread.
+                requestCts = null;
+
+                RequestInFlight(false);
                 CursorWait(false);
             }
         }
@@ -946,11 +1137,30 @@ namespace ApiTester
 
             store.Open(OpenFlags.ReadOnly);
 
+            //display -> thumbprint. The combo shows the subject; SendRequest looks the entry up
+            //and matches on the exact thumbprint - FindBySubjectName is a substring match, and
+            //two certs whose subjects overlap differ only in which one gets presented to TLS.
+            certificateThumbprints.Clear();
+
             foreach (X509Certificate2 certificate in store.Certificates)
             {
-                if (certificate.SubjectName.Name.Contains('*') == false) comboBox_certificates.Items.Add(certificate.SubjectName.Name);
+                string subject = certificate.SubjectName.Name;
+
+                if (subject.Contains('*')) continue;
+
+                if (!certificateThumbprints.ContainsKey(subject)) comboBox_certificates.Items.Add(subject);
+
+                //Two subjects can collide; prefer the one that expires later, matching the old
+                //per-request ordering.
+                if (!certificateThumbprints.TryGetValue(subject, out (string Thumbprint, DateTime Expires) existing)
+                    || certificate.NotAfter > existing.Expires)
+                {
+                    certificateThumbprints[subject] = (certificate.Thumbprint, certificate.NotAfter);
+                }
             }
         }
+
+        private readonly Dictionary<string, (string Thumbprint, DateTime Expires)> certificateThumbprints = new();
 
         private async void DataGridView1_UserDeletingRow(object sender, DataGridViewRowCancelEventArgs e)
         {
@@ -963,16 +1173,23 @@ namespace ApiTester
             try
             {
                 //Virtual mode has no per-row objects to read the selection from - enumerate
-                //selected indexes, which keeps every row shared. e.Row is the uncommitted row
-                //Del was pressed on, so it doubles as the fallback for an empty selection.
-                int selectedCount = dataGridView1.Rows.GetRowCount(DataGridViewElementStates.Selected);
-                var indexes = new List<int>(selectedCount);
+                //selected indexes, which keeps every row shared. SelectedRows looks like it does
+                //that but does the opposite: the collection holds DataGridViewRow objects, so
+                //building it reads Rows[i] for every selected index and unshares each one, which
+                //is the clone that dies in a trimmed build. GetFirstRow/GetNextRow walk the same
+                //selection and hand back indexes.
+                var indexes = new List<int>(dataGridView1.Rows.GetRowCount(DataGridViewElementStates.Selected));
 
-                for (int i = 0; i < selectedCount; i++)
+                for (int i = dataGridView1.Rows.GetFirstRow(DataGridViewElementStates.Selected);
+                     i >= 0;
+                     i = dataGridView1.Rows.GetNextRow(i, DataGridViewElementStates.Selected))
                 {
-                    indexes.Add(dataGridView1.SelectedRows[i].Index);
+                    indexes.Add(i);
                 }
 
+                //e.Row is the uncommitted row Del was pressed on, so it doubles as the fallback
+                //for an empty selection. The grid materialized it to raise this event, so reading
+                //Index off it unshares nothing that is still shared.
                 if (indexes.Count == 0 && e.Row is not null && e.Row.Index >= 0) indexes.Add(e.Row.Index);
                 if (indexes.Count == 0) return;
 
@@ -1024,7 +1241,7 @@ namespace ApiTester
             //Rebuilding the grid already put the current cell on the first row, so moving it
             //raises RowEnter, which displays the session. When the target is that same row
             //nothing changes and the session has to be displayed here instead.
-            bool alreadyCurrent = dataGridView1.CurrentCell?.RowIndex == index;
+            bool alreadyCurrent = dataGridView1.CurrentCellAddress.Y == index;
 
             //Setting the current cell scrolls it into view; Note is always visible.
             SelectViewRow(index);
@@ -1090,16 +1307,6 @@ namespace ApiTester
             }
         }
 
-        private static X509Certificate2 FindCert(X509Store store, string subject)
-        {
-            foreach (var cert in store.Certificates)
-                if (cert.SubjectName.Name.Equals(subject,
-                    StringComparison.OrdinalIgnoreCase))
-                    return cert;
-            return null;
-        }
-
-
         /// <summary>
         /// The tints a row carries by kind - header, placeholder, ordinary. Styles are shared
         /// instances per kind: the virtual grid materializes a real row only for cells in view,
@@ -1137,12 +1344,50 @@ namespace ApiTester
                     BackColor = PendingRowColor,
                     SelectionBackColor = PendingRowColor,
                     SelectionForeColor = SystemColors.WindowText,
-                    Font = pendingRowFont
+                    Font = pendingRowFont,
+                    //Same reason as the header row above: this style replaces the inherited one
+                    //rather than extending it, so anything left NotSet falls back to the grid's
+                    //own default instead of DefaultCellStyle's - and the placeholder ends up
+                    //centered while every row around it is left aligned.
+                    Alignment = DataGridViewContentAlignment.MiddleLeft,
+                    WrapMode = DataGridViewTriState.False
                 };
 
                 e.CellStyle = pendingRowStyle;
+                return;
             }
+
+            //Ordinary row: tint the status badge. This has to come after the two returns above,
+            //not in a handler of its own - the styles handed out there are shared instances, so
+            //writing a colour onto e.CellStyle without knowing which style it is would stain
+            //every header or placeholder in the grid with one row's status colour. Here
+            //e.CellStyle is this cell's own inherited copy and is safe to write to.
+            if (e.ColumnIndex != statusCodeColumnIndex || r.StatusCode is not int statusCode) return;
+
+            Color badge = StatusBadgeColor(statusCode);
+            if (badge.IsEmpty) return;
+
+            e.CellStyle.BackColor = badge;
+            e.CellStyle.ForeColor = Color.White;
+            e.CellStyle.SelectionBackColor = badge;
+            e.CellStyle.SelectionForeColor = Color.White;
         }
+
+        /// <summary>
+        /// The status badge's background, or an empty colour for a code outside every band -
+        /// which keeps the cell on the row's ordinary tint rather than the previous band's.
+        /// </summary>
+        private static Color StatusBadgeColor(int statusCode) => statusCode switch
+        {
+            >= 100 and < 300 => Color.Green,
+            >= 300 and < 400 => Color.YellowGreen,
+            >= 400 and < 600 => Color.Red,
+            _ => Color.Empty
+        };
+
+        //Resolved once in CreateGridColumns: CellFormatting runs per visible cell, and looking
+        //the column up by name on each one is a dictionary hit per cell per repaint.
+        private int statusCodeColumnIndex = -1;
 
         /// <summary>
         /// Note is the one editable column, and only on a real session row - headers and
@@ -1153,39 +1398,6 @@ namespace ApiTester
             SessionRow r = ViewRow(e.RowIndex);
 
             if (r is null || r.IsGroupHeader || r.IsPending) e.Cancel = true;
-        }
-
-        private void DataGridView1_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
-        {
-            if (this.dataGridView1.Columns["ResponseStatusCode"].Index == e.ColumnIndex && e.RowIndex >= 0)
-            {
-                SessionRow source = ViewRow(e.RowIndex);
-                if (source is null || source.StatusCode is not int statusCode) return;
-
-                if ((statusCode >= 100) && (statusCode < 300))
-                {
-                    e.CellStyle.BackColor = Color.Green;
-                    e.CellStyle.ForeColor = Color.White;
-                    e.CellStyle.SelectionBackColor = Color.Green;
-                    e.CellStyle.SelectionForeColor = Color.White;
-                }
-
-                if ((statusCode >= 300) && (statusCode < 400))
-                {
-                    e.CellStyle.BackColor = Color.YellowGreen;
-                    e.CellStyle.ForeColor = Color.White;
-                    e.CellStyle.SelectionBackColor = Color.YellowGreen;
-                    e.CellStyle.SelectionForeColor = Color.White;
-                }
-
-                if ((statusCode >= 400) && (statusCode < 600))
-                {
-                    e.CellStyle.BackColor = Color.Red;
-                    e.CellStyle.ForeColor = Color.White;
-                    e.CellStyle.SelectionBackColor = Color.Red;
-                    e.CellStyle.SelectionForeColor = Color.White;
-                }
-            }
         }
 
         /// <summary>
@@ -1288,12 +1500,23 @@ namespace ApiTester
         private readonly TextStyle secondary = new(Brushes.RoyalBlue, null, FontStyle.Regular);
         private readonly TextStyle blueStyle = new(Brushes.Blue, null, FontStyle.Underline);
 
+        //These run on every keystroke in the boxes they style; the patterns are constants, so
+        //compile them once rather than per TextChanged.
+        private static readonly System.Text.RegularExpressions.Regex HeaderNameRegex = new("[a-zA-Z]+.*[a-zA-Z]+:", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex HeaderLineRegex = new("^.*:.*$", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex UrlRegex = new(@"(http|ftp|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex SchemeRegex = new("[a-zA-Z]+://", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex SlashRegex = new("/", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex QuestionRegex = new("\\?", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex EqualsRegex = new("=", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex AmpRegex = new("&", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Compiled);
+
         private void TextBox_request_headers_TextChanged(object sender, TextChangedEventArgs e)
         {
             e.ChangedRange.ClearStyle(primary);
             e.ChangedRange.ClearStyle(secondary);
-            e.ChangedRange.SetStyle(secondary, "[a-zA-Z]+.*[a-zA-Z]+:", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(primary, "^.*:.*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+            e.ChangedRange.SetStyle(secondary, HeaderNameRegex);
+            e.ChangedRange.SetStyle(primary, HeaderLineRegex);
         }
 
         private void TextBox_response_headers_TextChanged(object sender, TextChangedEventArgs e)
@@ -1301,9 +1524,9 @@ namespace ApiTester
             e.ChangedRange.ClearStyle(primary);
             e.ChangedRange.ClearStyle(secondary);
             e.ChangedRange.ClearStyle(blueStyle);
-            e.ChangedRange.SetStyle(secondary, "[a-zA-Z]+.*[a-zA-Z]+:", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(primary, "^.*:.*$", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(blueStyle, @"(http|ftp|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?", System.Text.RegularExpressions.RegexOptions.Multiline);
+            e.ChangedRange.SetStyle(secondary, HeaderNameRegex);
+            e.ChangedRange.SetStyle(primary, HeaderLineRegex);
+            e.ChangedRange.SetStyle(blueStyle, UrlRegex);
         }
 
         //makes link in the response headers clickable
@@ -1352,11 +1575,11 @@ namespace ApiTester
         {
             e.ChangedRange.ClearStyle(primary);
             e.ChangedRange.ClearStyle(secondary);
-            e.ChangedRange.SetStyle(secondary, "[a-zA-Z]+://", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(primary, "/", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(primary, "\\?", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(primary, "=", System.Text.RegularExpressions.RegexOptions.Multiline);
-            e.ChangedRange.SetStyle(primary, "&", System.Text.RegularExpressions.RegexOptions.Multiline);
+            e.ChangedRange.SetStyle(secondary, SchemeRegex);
+            e.ChangedRange.SetStyle(primary, SlashRegex);
+            e.ChangedRange.SetStyle(primary, QuestionRegex);
+            e.ChangedRange.SetStyle(primary, EqualsRegex);
+            e.ChangedRange.SetStyle(primary, AmpRegex);
         }
 
         private void Button_clearAll_Click(object sender, EventArgs e)
@@ -1409,10 +1632,38 @@ namespace ApiTester
 
         //Filtering is plain string matching over the model. The old DataView.RowFilter took a
         //SQL-ish expression, which meant escaping user input to avoid a syntax error on a quote.
-        private async void TextBox_filter_TextChanged(object sender, EventArgs e)
+        private void TextBox_filter_TextChanged(object sender, EventArgs e)
         {
-            textFilter = textBox_filter.Text.Trim();
-            await RefreshGrid();
+            //Debounced: a rebuild re-filters, re-sorts and re-groups the whole model, and
+            //typing a word ran that once per letter - each one throwing away the answer the
+            //previous keystroke had just computed.
+            filterDebounce.Stop();
+            filterDebounce.Start();
+        }
+
+        private const int FilterDebounceMs = 200;
+
+        private System.Windows.Forms.Timer NewFilterDebounceTimer()
+        {
+            var timer = new System.Windows.Forms.Timer { Interval = FilterDebounceMs };
+
+            timer.Tick += async (sender, e) =>
+            {
+                timer.Stop();
+
+                textFilter = textBox_filter.Text.Trim();
+
+                try
+                {
+                    await RefreshGrid();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+            };
+
+            return timer;
         }
 
         private async void ComboBox_filter_group_SelectedIndexChanged(object sender, EventArgs e)
@@ -1500,7 +1751,7 @@ namespace ApiTester
                 }
 
                 //get selected session
-                if (dataGridView1.CurrentCell is null || ViewRow(dataGridView1.CurrentCell.RowIndex) is not { } currentRow)
+                if (ViewRow(dataGridView1.CurrentCellAddress.Y) is not { } currentRow)
                 {
                     MessageBox.Show("Select a session first.");
                     return;

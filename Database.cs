@@ -364,6 +364,102 @@ namespace ApiTester
             return id;
         }
 
+        /// <summary>
+        /// Inserts many rows, chunked into transactions of <see cref="InsertChunkSize"/>. A
+        /// row-by-row InsertAsync pays a journal fsync per row - on an import of tens of
+        /// thousands of sessions that dominates the whole operation - while a single
+        /// transaction spanning everything holds its journal for the duration and delays the
+        /// point at which a crash reveals partial progress to the very end.
+        /// </summary>
+        public Task InsertManyAsync<[DynamicallyAccessedMembers(TableMap.MappedMembers)] T>(IReadOnlyList<T> items)
+            => Guarded(async () =>
+            {
+                var map = TableMap.For(typeof(T));
+
+                //One command per chunk, reused: the SQL never changes between rows.
+                var inserted = map.Columns.Where(p => p != map.Key).ToList();
+
+                //A key-only table would emit "insert into T () values ()" - not valid SQLite.
+                if (inserted.Count == 0)
+                {
+                    foreach (T item in items) await InsertCore(item);
+                    return;
+                }
+
+                var conn = await Open();
+
+                for (int start = 0; start < items.Count; start += InsertChunkSize)
+                {
+                    int count = Math.Min(InsertChunkSize, items.Count - start);
+
+                    using var transaction = (SqliteTransaction)await conn.BeginTransactionAsync();
+
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = "insert into " + Quote(map.TableName) + " ("
+                        + string.Join(", ", inserted.Select(p => Quote(TableMap.ColumnOf(p)))) + ") values ("
+                        + string.Join(", ", inserted.Select((p, i) => "$p" + i.ToString(CultureInfo.InvariantCulture))) + "); select last_insert_rowid();";
+
+                    SqliteParameter[] parameters = new SqliteParameter[inserted.Count];
+                    for (int i = 0; i < inserted.Count; i++)
+                    {
+                        parameters[i] = cmd.CreateParameter();
+                        parameters[i].ParameterName = "$p" + i.ToString(CultureInfo.InvariantCulture);
+                        cmd.Parameters.Add(parameters[i]);
+                    }
+
+                    for (int row = start; row < start + count; row++)
+                    {
+                        T item = items[row];
+
+                        for (int i = 0; i < inserted.Count; i++)
+                        {
+                            parameters[i].Value = WriteValue(inserted[i].GetValue(item));
+                        }
+
+                        int id = Convert.ToInt32(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+
+                        //SetValue on a cached PropertyInfo is still reflection; cache the
+                        //compiled setter once per map instead of paying Invoke per row.
+                        if (map.Key is not null) KeySetter(map.Key)(item, id);
+                    }
+
+                    await transaction.CommitAsync();
+                }
+            });
+
+        //Bounded both ways: large enough that per-chunk fsyncs stop mattering, small enough
+        //that an import's journal and its partial-failure window stay short-lived.
+        private const int InsertChunkSize = 1_000;
+
+        //PropertyInfo.SetValue costs a virtual dispatch into the runtime's reflection engine
+        //per row; a cached open-delegate setter is a direct call. Built lazily, only when a
+        //bulk insert actually runs.
+        private static readonly Dictionary<PropertyInfo, Action<object, int>> KeySetters = new();
+
+        private static Action<object, int> KeySetter(PropertyInfo key)
+        {
+            lock (KeySetters)
+            {
+                if (!KeySetters.TryGetValue(key, out Action<object, int> setter))
+                {
+                    var target = System.Linq.Expressions.Expression.Parameter(typeof(object), "target");
+                    var value = System.Linq.Expressions.Expression.Parameter(typeof(int), "value");
+
+                    setter = System.Linq.Expressions.Expression.Lambda<Action<object, int>>(
+                        System.Linq.Expressions.Expression.Call(
+                            System.Linq.Expressions.Expression.Convert(target, key.DeclaringType),
+                            key.GetSetMethod(),
+                            System.Linq.Expressions.Expression.Convert(value, key.PropertyType)),
+                        target, value).Compile();
+
+                    KeySetters[key] = setter;
+                }
+
+                return setter;
+            }
+        }
+
         public Task UpdateAsync<[DynamicallyAccessedMembers(TableMap.MappedMembers)] T>(T item)
             => Guarded(() => UpdateCore(item));
 

@@ -1364,6 +1364,12 @@ namespace ApiTester
             {
                 //Deliberately blocking - there is nothing to hand over until this finishes.
                 //Task.Run keeps the continuations off the message loop we are standing in.
+                //
+                //Invariant the whole chain under StageForDragAsync must keep: no await may
+                //capture a WinForms SynchronizationContext - touching a control or Properties
+                //backs on the UI thread would deadlock the drag thread, which blocks the drop
+                //target and takes Explorer down with it. The FilesBackend contract already
+                //demands "never touches a control"; keep it that way.
                 return Task.Run(() => StageForDragAsync(entries)).GetAwaiter().GetResult();
             }
             catch (Exception ex) when (ex is BlobFileException or HttpRequestException or IOException

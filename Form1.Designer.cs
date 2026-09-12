@@ -854,7 +854,6 @@ namespace ApiTester
             dataGridView1.VirtualMode = false;
             dataGridView1.CellBeginEdit += DataGridView1_CellBeginEdit;
             dataGridView1.CellFormatting += DataGridView1_CellFormatting;
-            dataGridView1.CellPainting += DataGridView1_CellPainting;
             dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
             dataGridView1.CellValueNeeded += DataGridView1_CellValueNeeded;
             dataGridView1.CellValuePushed += DataGridView1_CellValuePushed;

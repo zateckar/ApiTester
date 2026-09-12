@@ -153,13 +153,20 @@ namespace ApiTester
         }
 
         /// <summary>
-        /// Reads a metadata string back. Accepts plaintext whether or not a key is set, so a
-        /// container that predates encryption keeps working; fails only when the value is
-        /// encrypted and cannot be opened.
+        /// Reads a metadata string back. Once a key is set, only encrypted values are accepted:
+        /// a peer that cannot forge a GCM ciphertext must not be able to substitute plaintext
+        /// by stripping the magic. While no key exists, plaintext keeps working so a container
+        /// written before encryption was configured stays readable.
         /// </summary>
-        public static bool TryUnprotectText(string stored, byte[] key, string context, out string value, bool hex = false)
+        /// <param name="wasEncrypted">
+        /// True when the value carried the GCM framing, false when plaintext was accepted.
+        /// Lets a caller record or reject plaintext acceptance during the unkeyed window,
+        /// where a peer with write access can substitute arbitrary values.
+        /// </param>
+        public static bool TryUnprotectText(string stored, byte[] key, string context, out string value, out bool wasEncrypted, bool hex = false)
         {
             value = string.Empty;
+            wasEncrypted = false;
 
             if (string.IsNullOrEmpty(stored)) return true;
 
@@ -171,13 +178,17 @@ namespace ApiTester
             }
             catch (FormatException)
             {
-                //Written by something that did not encode it - take it at face value.
+                //With a key in use an unencoded value is tampering, not an old format.
+                if (key is not null) return false;
+
                 value = stored;
                 return true;
             }
 
             if (!LooksEncrypted(raw))
             {
+                if (key is not null) return false;
+
                 value = Encoding.UTF8.GetString(raw);
                 return true;
             }
@@ -185,6 +196,7 @@ namespace ApiTester
             if (!TryUnprotect(raw, key, context, out byte[] plaintext)) return false;
 
             value = Encoding.UTF8.GetString(plaintext);
+            wasEncrypted = true;
             return true;
         }
     }
