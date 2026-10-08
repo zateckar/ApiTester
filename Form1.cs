@@ -283,6 +283,7 @@ namespace ApiTester
             SetupAutocomplete();
             SetupSync();
             SetupFilesTab();
+            SetupNotesEditor();
         }
 
         protected override async void OnLoad(EventArgs e)

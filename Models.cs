@@ -139,6 +139,13 @@ namespace ApiTester
 
         /// <summary>Notes tab: FastColoredTextBox Zoom, 100 = 100%.</summary>
         public int NoteEditorZoom { get; set; } = 100;
+
+        /// <summary>Notes tab: zoom of the visual editor in percent. Kept apart from the
+        /// Markdown editor's - the two lay text out at different sizes.</summary>
+        public int NoteVisualZoom { get; set; } = 100;
+
+        /// <summary>Notes tab: edit the Markdown source instead of the visual editor.</summary>
+        public bool NoteEditorMarkdown { get; set; }
     }
 
     public class Session

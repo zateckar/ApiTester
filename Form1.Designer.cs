@@ -89,6 +89,21 @@ namespace ApiTester
             menuItem_notes_delete = new ToolStripMenuItem();
             panel_note_edit = new Panel();
             fastColoredTextBox_note = new FastColoredTextBoxNS.FastColoredTextBox();
+            richTextBox_note = new RichTextBox();
+            toolStrip_note_format = new ToolStrip();
+            toolStripButton_note_h1 = new ToolStripButton();
+            toolStripButton_note_h2 = new ToolStripButton();
+            toolStripButton_note_h3 = new ToolStripButton();
+            toolStripButton_note_text = new ToolStripButton();
+            toolStripButton_note_bold = new ToolStripButton();
+            toolStripButton_note_italic = new ToolStripButton();
+            toolStripButton_note_strike = new ToolStripButton();
+            toolStripButton_note_code = new ToolStripButton();
+            toolStripButton_note_bullet = new ToolStripButton();
+            toolStripButton_note_quote = new ToolStripButton();
+            toolStripButton_note_codeblock = new ToolStripButton();
+            toolStripButton_note_markdown = new ToolStripButton();
+            toolStripButton_note_date = new ToolStripButton();
             panel_note_name = new Panel();
             textBox_note_name = new TextBox();
             button_notes_save = new Button();
@@ -202,6 +217,7 @@ namespace ApiTester
             ((System.ComponentModel.ISupportInitialize)dataGridView_notes).BeginInit();
             contextMenuStrip_notes.SuspendLayout();
             panel_note_edit.SuspendLayout();
+            toolStrip_note_format.SuspendLayout();
             panel_note_name.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)fastColoredTextBox_note).BeginInit();
             ((System.ComponentModel.ISupportInitialize)splitContainer4).BeginInit();
@@ -1036,8 +1052,11 @@ namespace ApiTester
             // panel_note_edit
             //
             //Docked children lay out from the last added to the first: the name strip takes the
-            //top, the status strip the bottom, and the editor fills what is left.
+            //top, the formatting strip goes under it, and the editor fills what is left. The
+            //two editors share that space - only one of them is visible at a time.
             panel_note_edit.Controls.Add(fastColoredTextBox_note);
+            panel_note_edit.Controls.Add(richTextBox_note);
+            panel_note_edit.Controls.Add(toolStrip_note_format);
             panel_note_edit.Controls.Add(panel_note_name);
             panel_note_edit.Dock = DockStyle.Fill;
             panel_note_edit.Location = new Point(0, 0);
@@ -1069,6 +1088,75 @@ namespace ApiTester
             fastColoredTextBox_note.Zoom = 100;
             fastColoredTextBox_note.TextChanged += FastColoredTextBox_note_TextChanged;
             fastColoredTextBox_note.ZoomChanged += FastColoredTextBox_note_ZoomChanged;
+            //
+            // richTextBox_note
+            //
+            //The visual editor. Notes are stored as Markdown either way - see NoteMarkdown.
+            richTextBox_note.AcceptsTab = true;
+            richTextBox_note.BorderStyle = BorderStyle.None;
+            richTextBox_note.DetectUrls = false;
+            richTextBox_note.Dock = DockStyle.Fill;
+            richTextBox_note.Font = new Font("Segoe UI", 11F);
+            richTextBox_note.HideSelection = false;
+            richTextBox_note.Name = "richTextBox_note";
+            richTextBox_note.ScrollBars = RichTextBoxScrollBars.Vertical;
+            richTextBox_note.ShowSelectionMargin = true;
+            richTextBox_note.TabIndex = 3;
+            richTextBox_note.Text = "";
+            richTextBox_note.KeyDown += RichTextBox_note_KeyDown;
+            richTextBox_note.LinkClicked += RichTextBox_note_LinkClicked;
+            richTextBox_note.TextChanged += RichTextBox_note_TextChanged;
+            //
+            // toolStrip_note_format
+            //
+            toolStrip_note_format.GripStyle = ToolStripGripStyle.Hidden;
+            toolStrip_note_format.ImageScalingSize = new Size(20, 20);
+            toolStrip_note_format.Items.AddRange(new ToolStripItem[] { toolStripButton_note_h1, toolStripButton_note_h2, toolStripButton_note_h3, toolStripButton_note_text, new ToolStripSeparator(), toolStripButton_note_bold, toolStripButton_note_italic, toolStripButton_note_strike, toolStripButton_note_code, new ToolStripSeparator(), toolStripButton_note_bullet, toolStripButton_note_quote, toolStripButton_note_codeblock, new ToolStripSeparator(), toolStripButton_note_date, toolStripButton_note_markdown });
+            toolStrip_note_format.Name = "toolStrip_note_format";
+            toolStrip_note_format.RenderMode = ToolStripRenderMode.System;
+            toolStrip_note_format.TabIndex = 2;
+            //
+            // toolStripButton_note_h1 .. toolStripButton_note_codeblock
+            //
+            //Text only, no images: a letter set in the style it applies says more than an icon.
+            NoteFormatButton(toolStripButton_note_h1, "H1", "Heading 1 (Ctrl+1)", FontStyle.Bold);
+            NoteFormatButton(toolStripButton_note_h2, "H2", "Heading 2 (Ctrl+2)", FontStyle.Bold);
+            NoteFormatButton(toolStripButton_note_h3, "H3", "Heading 3 (Ctrl+3)", FontStyle.Bold);
+            NoteFormatButton(toolStripButton_note_text, "Text", "Normal text (Ctrl+0)", FontStyle.Regular);
+            NoteFormatButton(toolStripButton_note_bold, "B", "Bold (Ctrl+B)", FontStyle.Bold);
+            NoteFormatButton(toolStripButton_note_italic, "I", "Italic (Ctrl+I)", FontStyle.Italic);
+            NoteFormatButton(toolStripButton_note_strike, "S", "Strikethrough (Ctrl+Shift+X)", FontStyle.Strikeout);
+            NoteFormatButton(toolStripButton_note_code, "</>", "Inline code (Ctrl+E)", FontStyle.Regular);
+            NoteFormatButton(toolStripButton_note_bullet, "• List", "Bulleted list (Ctrl+Shift+8)", FontStyle.Regular);
+            NoteFormatButton(toolStripButton_note_quote, "❝ Quote", "Quote (Ctrl+Shift+9)", FontStyle.Regular);
+            NoteFormatButton(toolStripButton_note_codeblock, "{ } Code", "Code block (Ctrl+Shift+C)", FontStyle.Regular);
+            toolStripButton_note_h1.Click += ToolStripButton_note_h1_Click;
+            toolStripButton_note_h2.Click += ToolStripButton_note_h2_Click;
+            toolStripButton_note_h3.Click += ToolStripButton_note_h3_Click;
+            toolStripButton_note_text.Click += ToolStripButton_note_text_Click;
+            toolStripButton_note_bold.Click += ToolStripButton_note_bold_Click;
+            toolStripButton_note_italic.Click += ToolStripButton_note_italic_Click;
+            toolStripButton_note_strike.Click += ToolStripButton_note_strike_Click;
+            toolStripButton_note_code.Click += ToolStripButton_note_code_Click;
+            toolStripButton_note_bullet.Click += ToolStripButton_note_bullet_Click;
+            toolStripButton_note_quote.Click += ToolStripButton_note_quote_Click;
+            toolStripButton_note_codeblock.Click += ToolStripButton_note_codeblock_Click;
+            //
+            // toolStripButton_note_date
+            //
+            //Not formatting - it stays on the strip in the Markdown editor too.
+            NoteFormatButton(toolStripButton_note_date, "Date", "Insert the current date and time (F5)", FontStyle.Regular);
+            toolStripButton_note_date.Click += ToolStripButton_note_date_Click;
+            //
+            // toolStripButton_note_markdown
+            //
+            toolStripButton_note_markdown.Alignment = ToolStripItemAlignment.Right;
+            toolStripButton_note_markdown.CheckOnClick = true;
+            toolStripButton_note_markdown.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            toolStripButton_note_markdown.Name = "toolStripButton_note_markdown";
+            toolStripButton_note_markdown.Text = "Markdown";
+            toolStripButton_note_markdown.ToolTipText = "Edit the note's Markdown source";
+            toolStripButton_note_markdown.Click += ToolStripButton_note_markdown_Click;
             //
             // textBox_note_name
             //
@@ -1934,6 +2022,8 @@ namespace ApiTester
             contextMenuStrip_notes.ResumeLayout(false);
             panel_note_edit.ResumeLayout(false);
             panel_note_edit.PerformLayout();
+            toolStrip_note_format.ResumeLayout(false);
+            toolStrip_note_format.PerformLayout();
             panel_note_name.ResumeLayout(false);
             panel_note_name.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)fastColoredTextBox_note).EndInit();
@@ -2089,6 +2179,21 @@ namespace ApiTester
         private Button button_notes_save;
         private Label label_notes_save_status;
         private Label label_notes_sync_status;
+        private RichTextBox richTextBox_note;
+        private ToolStrip toolStrip_note_format;
+        private ToolStripButton toolStripButton_note_h1;
+        private ToolStripButton toolStripButton_note_h2;
+        private ToolStripButton toolStripButton_note_h3;
+        private ToolStripButton toolStripButton_note_text;
+        private ToolStripButton toolStripButton_note_bold;
+        private ToolStripButton toolStripButton_note_italic;
+        private ToolStripButton toolStripButton_note_strike;
+        private ToolStripButton toolStripButton_note_code;
+        private ToolStripButton toolStripButton_note_bullet;
+        private ToolStripButton toolStripButton_note_quote;
+        private ToolStripButton toolStripButton_note_codeblock;
+        private ToolStripButton toolStripButton_note_markdown;
+        private ToolStripButton toolStripButton_note_date;
     }
 }
 

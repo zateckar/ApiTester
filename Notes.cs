@@ -41,12 +41,14 @@ namespace ApiTester
         //the Files tab waits for filesLoaded.
         private bool notesLoaded;
 
-        //The grid can be repopulated while the editor holds unsaved text (a sync pull lands
-        //behind the scenes): the debounced save keeps the id it belongs to rather than
-        //trusting currentNote, which the reload may have replaced.
+        //The note a debounced save belongs to. The name and text are read from the editor when
+        //the save fires, not per keystroke - turning the visual editor's content into Markdown
+        //is not free. Every path that puts another note into the editor flushes first, so the
+        //editor still holds this note then; the id check in the flush makes sure.
         private int pendingNoteSaveId;
-        private string pendingNoteName;
-        private string pendingNoteText;
+
+        //The editor holds edits that have not been written - what "Unsaved changes" says.
+        private bool noteUnsaved;
 
         private System.Windows.Forms.Timer noteSaveTimer;
 
@@ -106,6 +108,8 @@ namespace ApiTester
             SetSplitterDistance(splitContainer_notes, splitContainer_notes.LogicalToDeviceUnits(_settings.SplitterNotesDistance));
 
             if (_settings.NoteEditorZoom > 0) fastColoredTextBox_note.Zoom = _settings.NoteEditorZoom;
+
+            ShowNoteEditorMode();
         }
 
         /// <summary>
@@ -128,7 +132,18 @@ namespace ApiTester
         private System.Windows.Forms.Timer NewNoteSaveTimer()
         {
             var timer = new System.Windows.Forms.Timer { Interval = NoteSaveDebounceMs };
-            timer.Tick += async (sender, e) => await FlushPendingNoteSave();
+            timer.Tick += async (sender, e) =>
+            {
+                //An exception here would end up in the global handler, which only logs it -
+                //the label already says the save failed, and Save retries it with the message.
+                try
+                {
+                    await FlushPendingNoteSave();
+                }
+                catch (Exception)
+                {
+                }
+            };
             return timer;
         }
 
@@ -249,6 +264,11 @@ namespace ApiTester
             if (currentNote is not null && currentNote.Id == id) return;
 
             Note note = await sessionsConn.FindAsync<Note>(id);
+
+            //Typing while the note was being read went into the note still on screen - write
+            //it before the editor is handed over.
+            await FlushPendingNoteSave();
+
             if (note is null || note.Deleted)
             {
                 SetNoteEditor(null);
@@ -267,13 +287,7 @@ namespace ApiTester
             try
             {
                 textBox_note_name.Text = note?.Name ?? string.Empty;
-                fastColoredTextBox_note.Text = note?.Text ?? string.Empty;
-
-                //Text assignment drops the caret at the end with everything between 0 and it
-                //selected; land the caret at the top instead, with nothing marked.
-                fastColoredTextBox_note.SelectionStart = 0;
-                fastColoredTextBox_note.SelectionLength = 0;
-                fastColoredTextBox_note.DoCaretVisible();
+                LoadNoteEditor(note?.Text ?? string.Empty);
             }
             finally
             {
@@ -283,9 +297,19 @@ namespace ApiTester
             bool enabled = note is not null;
             textBox_note_name.Enabled = enabled;
             fastColoredTextBox_note.Enabled = enabled;
+            richTextBox_note.Enabled = enabled;
+
+            foreach (ToolStripItem item in toolStrip_note_format.Items)
+            {
+                if (item != toolStripButton_note_markdown) item.Enabled = enabled;
+            }
+
+            noteUnsaved = false;
 
             //The label always speaks, not only once typing started: a freshly opened note was
-            //loaded from the database, so it reads as saved.
+            //loaded from the database, so it reads as saved. Not from note.Dirty - that flag
+            //means "not synced yet", which the sync label reports; read as "unsaved" it showed
+            //a Save button with nothing to save.
             if (note is null)
             {
                 label_notes_save_status.Text = "No note";
@@ -293,7 +317,7 @@ namespace ApiTester
             }
             else
             {
-                UpdateNotesStatus(saved: !note.Dirty);
+                UpdateNotesStatus(saved: true);
             }
         }
 
@@ -301,7 +325,7 @@ namespace ApiTester
         {
             if (suppressNoteDirty || currentNote is null) return;
 
-            ScheduleNoteSave(textBox_note_name.Text, fastColoredTextBox_note.Text);
+            ScheduleNoteSave();
         }
 
         /// <summary>
@@ -343,20 +367,19 @@ namespace ApiTester
         {
             if (suppressNoteDirty || currentNote is null) return;
 
-            ScheduleNoteSave(textBox_note_name.Text, fastColoredTextBox_note.Text);
+            ScheduleNoteSave();
         }
 
         /// <summary>
         /// An edit is cheaper to wait out than to save per keystroke: the timer restarts on
         /// every change and the write lands a beat after typing pauses.
         /// </summary>
-        private void ScheduleNoteSave(string name, string text)
+        private void ScheduleNoteSave()
         {
             if (currentNote is null) return;
 
             pendingNoteSaveId = currentNote.Id;
-            pendingNoteName = name;
-            pendingNoteText = text;
+            noteUnsaved = true;
 
             UpdateNotesStatus(saved: false);
 
@@ -375,23 +398,46 @@ namespace ApiTester
             if (pendingNoteSaveId == 0 || sessionsConn is null) return;
 
             int id = pendingNoteSaveId;
-            string name = pendingNoteName;
-            string text = pendingNoteText;
 
             pendingNoteSaveId = 0;
 
-            Note note = currentNote is not null && currentNote.Id == id
-                ? currentNote
-                : await sessionsConn.FindAsync<Note>(id);
+            //The editor holds the content to save; should it ever hold another note by now,
+            //writing its text into this one would be the worst outcome there is.
+            Note note = currentNote;
+            if (note is null || note.Id != id || note.Deleted) return;
 
-            if (note is null || note.Deleted) return;
+            try
+            {
+                note.Name = textBox_note_name.Text;
+                note.Text = NoteEditorMarkdown();
 
-            note.Name = name;
-            note.Text = text;
+                await MarkNoteDirty(note);
+            }
+            catch
+            {
+                //The edit is still owed: re-arm it so Save - or the next keystroke - tries
+                //again, instead of leaving "Unsaved changes" with nothing behind it.
+                if (pendingNoteSaveId == 0) pendingNoteSaveId = id;
 
-            await MarkNoteDirty(note);
+                label_notes_save_status.Text = "Save failed";
+                label_notes_save_status.ForeColor = System.Drawing.Color.IndianRed;
+                throw;
+            }
 
+            //Typing while the write was in flight has armed the next save already - this one
+            //did not catch those keystrokes, so it does not get to say "Saved".
+            if (pendingNoteSaveId != 0) return;
+
+            noteUnsaved = false;
             UpdateNotesStatus(saved: true, savedAt: DateTime.Now);
+
+            if (wysiwygSavedAsPlainText)
+            {
+                wysiwygSavedAsPlainText = false;
+
+                label_notes_save_status.Text = "Saved without formatting";
+                label_notes_save_status.ForeColor = System.Drawing.Color.IndianRed;
+            }
         }
 
         private async Task MarkNoteDirty(Note note)
@@ -428,6 +474,10 @@ namespace ApiTester
         {
             try
             {
+                //Save means save: should the editor show unsaved changes that nothing is
+                //waiting to write any more, re-arm them rather than doing nothing.
+                if (noteUnsaved && pendingNoteSaveId == 0 && currentNote is not null) pendingNoteSaveId = currentNote.Id;
+
                 await FlushPendingNoteSave();
             }
             catch (Exception ex)
@@ -451,7 +501,7 @@ namespace ApiTester
             pendingNoteSaveId = 0;
 
             string name = carryEditorContent ? textBox_note_name.Text : "New note";
-            string text = carryEditorContent ? fastColoredTextBox_note.Text : string.Empty;
+            string text = carryEditorContent ? NoteEditorMarkdown() : string.Empty;
 
             if (string.IsNullOrWhiteSpace(name)) name = "New note";
 
