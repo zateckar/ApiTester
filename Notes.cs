@@ -50,7 +50,12 @@ namespace ApiTester
 
         private System.Windows.Forms.Timer noteSaveTimer;
 
-        private const int NoteSaveDebounceMs = 750;
+        //A pause in typing, not a pause between words, before the edit is written.
+        private const int NoteSaveDebounceMs = 3000;
+
+        //A saved note waits longer for its sync than a session does: notes are typed in bursts
+        //with pauses, and every round is a request against the store.
+        private const int NoteSyncDebounceMs = 30000;
 
         /// <summary>
         /// Profile switch analogue of ResetFilesTab: the loaded listing and any half-debounced
@@ -98,9 +103,19 @@ namespace ApiTester
         /// </summary>
         private void ApplyNotesSettings()
         {
-            SetSplitterDistance(splitContainer_notes, _settings.SplitterNotesDistance);
+            SetSplitterDistance(splitContainer_notes, splitContainer_notes.LogicalToDeviceUnits(_settings.SplitterNotesDistance));
 
             if (_settings.NoteEditorZoom > 0) fastColoredTextBox_note.Zoom = _settings.NoteEditorZoom;
+        }
+
+        /// <summary>
+        /// The list width as it is stored: in 96-DPI units, so the same value means the same
+        /// physical width on a machine with different display scaling. Only meaningful once the
+        /// tab has been opened - before that the splitter still sits where the designer put it.
+        /// </summary>
+        private int NotesSplitterLogicalDistance()
+        {
+            return (int)Math.Round(splitContainer_notes.SplitterDistance * 96.0 / splitContainer_notes.DeviceDpi);
         }
 
         private void FastColoredTextBox_note_ZoomChanged(object sender, EventArgs e)
@@ -394,7 +409,7 @@ namespace ApiTester
                 dirtyRow.Cells[1].Value = NoteUpdatedDisplay(note.UpdatedUtc);
             }
 
-            RequestSync();
+            RequestSync(NoteSyncDebounceMs);
         }
 
         private async void MenuItem_notes_new_Click(object sender, EventArgs e)

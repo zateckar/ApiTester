@@ -297,6 +297,9 @@ namespace ApiTester
             {
                 MessageBox.Show(ex.Message);
             }
+
+            //Never throws - see SyncNow.
+            await SyncOnStartup();
         }
 
         private void SetupAutocomplete()
@@ -1447,7 +1450,9 @@ namespace ApiTester
         {
             _settings.splitContainer5 = splitContainer5_reqres.SplitterDistance;
             _settings.splitContainer1 = splitContainer_main_sessions.SplitterDistance;
-            _settings.SplitterNotesDistance = splitContainer_notes.SplitterDistance;
+            //An unopened Notes tab still holds the designer's position; saving it would throw
+            //away the width the user last set.
+            if (notesLoaded) _settings.SplitterNotesDistance = NotesSplitterLogicalDistance();
 
             _settings.LocationX = Location.X;
             _settings.LocationY = Location.Y;

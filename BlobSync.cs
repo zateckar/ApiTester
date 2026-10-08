@@ -180,9 +180,11 @@ namespace ApiTester
 
         /// <summary>
         /// Asks for a sync shortly. Called after every change - collapsing a burst of them into
-        /// one round is the whole point of the delay.
+        /// one round is the whole point of the delay. A longer delay (note edits) does not push
+        /// back a round an ordinary change has already armed with a shorter one - the note
+        /// simply rides along in it.
         /// </summary>
-        private void RequestSync()
+        private void RequestSync(int delayMs = SyncDebounceMs)
         {
             if (IsDisposed || Disposing) return;
             if (!SyncConfigured || syncDebounceTimer is null) return;
@@ -191,8 +193,23 @@ namespace ApiTester
             //failed, and letting one re-arm the sync would spin a failing round on every edit.
             //The rows stay dirty and go out on the first round after the real re-arm.
 
+            if (syncDebounceTimer.Enabled && syncDebounceTimer.Interval < delayMs) return;
+
             syncDebounceTimer.Stop();
+            syncDebounceTimer.Interval = delayMs;
             syncDebounceTimer.Start();
+        }
+
+        /// <summary>
+        /// The first round after start runs straight away rather than after the change debounce:
+        /// whatever the other instances published while this one was closed should show up as
+        /// soon as the window does.
+        /// </summary>
+        private async Task SyncOnStartup()
+        {
+            syncDebounceTimer?.Stop();
+
+            await SyncNow(verbose: false);
         }
 
         /// <summary>

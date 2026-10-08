@@ -942,6 +942,7 @@ namespace ApiTester
             // splitContainer_notes
             //
             splitContainer_notes.Dock = DockStyle.Fill;
+            splitContainer_notes.FixedPanel = FixedPanel.Panel1;
             splitContainer_notes.Location = new Point(4, 4);
             splitContainer_notes.Name = "splitContainer_notes";
             //

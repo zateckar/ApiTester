@@ -134,7 +134,7 @@ namespace ApiTester
         //Off by default - the file is a debugging aid, and leaving it on keeps it growing.
         public bool SyncLogToFile { get; set; }
 
-        /// <summary>Notes tab: width of the notes list next to the editor.</summary>
+        /// <summary>Notes tab: width of the notes list next to the editor, in 96-DPI units.</summary>
         public int SplitterNotesDistance { get; set; } = 260;
 
         /// <summary>Notes tab: FastColoredTextBox Zoom, 100 = 100%.</summary>

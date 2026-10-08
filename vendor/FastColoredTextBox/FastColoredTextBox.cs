@@ -5673,8 +5673,14 @@ namespace FastColoredTextBoxNS
                 //render by custom styles
                 IEnumerable<Style> currentStyles = null;
                 int iLastFlushedChar = firstChar - 1;
+                //startX is where the first char of this wordwrap string sits. With the view
+                //scrolled horizontally, drawing begins at firstChar, so skip the width of the
+                //chars before it - otherwise the text is painted shifted left of the caret and
+                //selection, which are positioned from startX correctly.
                 int x = startX;
-                int xLastFlushedChar = startX;
+                for (int iChar = 0; iChar < firstChar && from + iChar < line.Count; iChar++)
+                    x += GetCharWidth(line[from + iChar].C);
+                int xLastFlushedChar = x;
                 for (int iChar = firstChar; iChar <= lastChar; iChar++)
                 {
                     StyledChar sChar = line[from + iChar];
